@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "uc-uplift"
+version = "0.1.0"
+description = "Tested data-processing pipeline for the UK Universal Credit standard allowance uplift dashboard."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "microdf-python>=0.4",
+]
+
+[project.optional-dependencies]
+simulation = [
+  "policyengine-uk>=2.75.2",
+]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+uc-uplift-build = "uc_uplift.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/uc_uplift"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,42 @@
+# UC Standard Allowance Uplift dashboard
+
+PolicyEngine UK validation of the Universal Credit standard allowance
+uplift legislated by the Universal Credit Act 2025. Static, first-round
+fiscal and distributional impact for 2026/27 → 2029/30.
+
+## Repository layout
+
+```
+src/uc_uplift/        Python package (analysis + pipeline + CLI)
+tests/                Pytest suite for the analysis functions
+dashboard/            Next.js dashboard (Reform + Methodology tabs)
+data/                 Pipeline output (uc_uplift_results.json)
+docs/                 Additional documentation
+uc_uplift_analysis.ipynb   Original notebook
+```
+
+## Quick start
+
+```bash
+conda activate python313
+pip install -e '.[simulation,dev]'
+pytest
+uc-uplift-build --sync-dashboard
+cd dashboard && npm install && npm run dev
+```
+
+`uc-uplift-build` runs both PolicyEngine UK simulations (counterfactual =
+rebalancing OFF, reform = current law), evaluates each financial year
+2026/27 → 2029/30, and writes `data/uc_uplift_results.json`. Adding
+`--sync-dashboard` also copies the JSON to
+`dashboard/public/data/uc_uplift_results.json` so the dashboard picks it
+up.
+
+## Validation targets
+
+| Published claim | PolicyEngine UK |
+| --- | --- |
+| £725/year for single 25+ (DWP IA) | £736 |
+| £247/year above-inflation slice (IFS) | £254 |
+| 6.7M households gain (DWP IA) | 5.91M |
+| £1.85bn cost in 2029/30 (DWP IA) | £1.65bn |
