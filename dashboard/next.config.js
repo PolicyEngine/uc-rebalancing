@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@policyengine/design-system"],
+  transpilePackages: ["@policyengine/ui-kit"],
 };
 
 module.exports = nextConfig;

@@ -1,5 +1,5 @@
 /**
- * Design tokens — inlined from @policyengine/design-system/tokens/colors
+ * Design tokens — inlined from @policyengine/ui-kit/legacy/tokens/colors
  * to avoid ESM bundling issues with Next.js.
  */
 export const colors = {
