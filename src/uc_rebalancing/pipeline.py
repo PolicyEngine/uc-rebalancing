@@ -33,9 +33,9 @@ from .scenarios import (
 )
 
 DEFAULT_DATASET = "hf://policyengine/policyengine-uk-data/enhanced_frs_2023_24.h5"
-DEFAULT_OUTPUT_PATH = Path("data/uc_uplift_results.json")
+DEFAULT_OUTPUT_PATH = Path("data/uc_rebalancing_results.json")
 DEFAULT_DASHBOARD_OUTPUT_PATH = Path(
-    "dashboard/public/data/uc_uplift_results.json"
+    "dashboard/public/data/uc_rebalancing_results.json"
 )
 
 

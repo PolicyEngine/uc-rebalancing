@@ -7,7 +7,7 @@ specific percentages.
 
 from __future__ import annotations
 
-from uc_uplift.scenarios import (
+from uc_rebalancing.scenarios import (
     policy_description,
     reform_start_for_schedule,
     scenario_id,

@@ -10,12 +10,12 @@ fiscal and distributional impact for 2026/27 → 2029/30.
 ## Repository layout
 
 ```
-src/uc_uplift/        Python package (analysis + pipeline + CLI)
+src/uc_rebalancing/        Python package (analysis + pipeline + CLI)
 tests/                Pytest suite for the analysis functions
 dashboard/            Next.js dashboard (Reform + Methodology tabs)
-data/                 Pipeline output (uc_uplift_results.json)
+data/                 Pipeline output (uc_rebalancing_results.json)
 docs/                 Additional documentation
-uc_uplift_analysis.ipynb   Original notebook
+uc_rebalancing_analysis.ipynb   Original notebook
 ```
 
 ## Quick start
@@ -24,15 +24,15 @@ uc_uplift_analysis.ipynb   Original notebook
 conda activate python313
 pip install -e '.[simulation,dev]'
 pytest
-uc-uplift-build --sync-dashboard
+uc-rebalancing-build --sync-dashboard
 cd dashboard && npm install && npm run dev
 ```
 
-`uc-uplift-build` runs both PolicyEngine UK simulations (counterfactual =
+`uc-rebalancing-build` runs both PolicyEngine UK simulations (counterfactual =
 rebalancing OFF, reform = current law), evaluates each financial year
-2026/27 → 2029/30, and writes `data/uc_uplift_results.json`. Adding
+2026/27 → 2029/30, and writes `data/uc_rebalancing_results.json`. Adding
 `--sync-dashboard` also copies the JSON to
-`dashboard/public/data/uc_uplift_results.json` so the dashboard picks it
+`dashboard/public/data/uc_rebalancing_results.json` so the dashboard picks it
 up.
 
 ## Validation targets

@@ -13,13 +13,13 @@ The Universal Credit Act 2025 packages two changes under a single
 This dashboard toggles the parent flag, so the reported impact is the
 net effect of both legs against a counterfactual where the entire
 rebalancing package is switched off. The internal POLICY_ID is kept as
-``uc_standard_allowance_uplift`` for backwards compatibility with the
+``uc_rebalancing`` for backwards compatibility with the
 dashboard payload schema.
 """
 
 from __future__ import annotations
 
-POLICY_ID = "uc_standard_allowance_uplift"
+POLICY_ID = "uc_rebalancing"
 POLICY_TITLE = "UC rebalancing analysis"
 
 REBALANCING_PARAMETER = "gov.dwp.universal_credit.rebalancing.active"

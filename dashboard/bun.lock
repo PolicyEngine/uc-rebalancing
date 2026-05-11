@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "uc-uplift-dashboard",
+      "name": "uc-rebalancing-dashboard",
       "dependencies": {
         "d3": "^7.9.0",
         "react": "^19.2.0",

@@ -3,7 +3,7 @@
  */
 
 const POLICY_META = {
-  uc_standard_allowance_uplift: {
+  uc_rebalancing: {
     title: "UC rebalancing analysis",
     shortTitle: "UC rebalancing",
     description:

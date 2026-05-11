@@ -9,7 +9,7 @@ from __future__ import annotations
 import microdf as mdf
 import pytest
 
-from uc_uplift.analysis import (
+from uc_rebalancing.analysis import (
     compute_decile_breakdown,
     compute_summary,
     compute_winners_losers,

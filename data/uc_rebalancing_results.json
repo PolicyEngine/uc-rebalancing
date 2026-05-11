@@ -3,8 +3,8 @@
   "base_year": 2025,
   "primary_scenario": "fy_2029_30",
   "policies": {
-    "uc_standard_allowance_uplift": {
-      "id": "uc_standard_allowance_uplift",
+    "uc_rebalancing": {
+      "id": "uc_rebalancing",
       "title": "UC rebalancing analysis",
       "description": "From April 2026 the Universal Credit Act 2025 introduces two changes under a single rebalancing flag: an above-inflation uplift to the standard allowance, reaching 4.8% cumulatively by 2029/30, and a fixed monthly health element of \u00a3217.26 for new claimants. This dashboard toggles gov.dwp.universal_credit.rebalancing.active, so the reported impact is the net effect of both legs against a counterfactual where the rebalancing package is switched off.",
       "uplift_schedule": {

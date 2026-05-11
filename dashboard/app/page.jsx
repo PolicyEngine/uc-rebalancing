@@ -36,9 +36,9 @@ function Dashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const response = await fetch("/data/uc_uplift_results.json");
+        const response = await fetch("/data/uc_rebalancing_results.json");
         if (!response.ok) {
-          throw new Error("uc_uplift_results.json not found");
+          throw new Error("uc_rebalancing_results.json not found");
         }
         const json = await response.json();
         setData(json);
@@ -121,7 +121,7 @@ function Dashboard() {
         {error && (
           <p className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
             Error: {error}. Run{" "}
-            <code>uc-uplift-build --sync-dashboard</code> to generate the
+            <code>uc-rebalancing-build --sync-dashboard</code> to generate the
             data file.
           </p>
         )}
@@ -142,11 +142,11 @@ function Dashboard() {
           <p>
             Replication code:{" "}
             <a
-              href="https://github.com/PolicyEngine/uc-uplift"
+              href="https://github.com/PolicyEngine/uc-rebalancing"
               target="_blank"
               rel="noreferrer"
             >
-              PolicyEngine/uc-uplift
+              PolicyEngine/uc-rebalancing
             </a>
             .
           </p>

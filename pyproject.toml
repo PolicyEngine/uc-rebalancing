@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "uc-uplift"
+name = "uc-rebalancing"
 version = "0.1.0"
 description = "Tested data-processing pipeline for the UK Universal Credit standard allowance uplift dashboard."
 readme = "README.md"
@@ -23,10 +23,10 @@ dev = [
 ]
 
 [project.scripts]
-uc-uplift-build = "uc_uplift.cli:main"
+uc-rebalancing-build = "uc_rebalancing.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/uc_uplift"]
+packages = ["src/uc_rebalancing"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
