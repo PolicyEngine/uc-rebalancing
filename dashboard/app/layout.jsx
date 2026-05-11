@@ -1,9 +1,9 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "UC standard allowance uplift | PolicyEngine",
+  title: "UC rebalancing analysis | PolicyEngine",
   description:
-    "Interactive dashboard validating PolicyEngine UK against the DWP and IFS estimates of the Universal Credit standard allowance uplift.",
+    "Interactive analysis of the Universal Credit rebalancing package on PolicyEngine UK: above-inflation standard allowance uplift and the new-claimant health element change.",
 };
 
 export default function RootLayout({ children }) {

@@ -1,4 +1,4 @@
-"""Analysis functions for the UC standard allowance uplift.
+"""Analysis functions for the UC rebalancing impact.
 
 The functions here take pre-computed ``MicroSeries`` (gain, baseline income,
 income deciles, equivalised income, in_poverty) and return plain Python
@@ -27,8 +27,13 @@ def compute_summary(
     n_gaining = float(gainers_mask.sum())
     n_losing = float(losers_mask.sum())
     total_cost = float(gain.sum())
-    avg_gain = float(gain[gainers_mask].mean())
+    avg_gain = (
+        float(gain[gainers_mask].mean()) if n_gaining > 0 else 0.0
+    )
     baseline_total = float(income_baseline.sum())
+    cost_pct = (
+        total_cost / baseline_total * 100 if baseline_total > 0 else 0.0
+    )
 
     return {
         "total_cost_bn": round(total_cost / 1e9, 3),
@@ -37,7 +42,7 @@ def compute_summary(
         "n_losing": int(round(n_losing)),
         "avg_gain_per_hh": round(avg_gain, 0),
         "baseline_net_income_bn": round(baseline_total / 1e9, 1),
-        "cost_pct_of_income": round(total_cost / baseline_total * 100, 3),
+        "cost_pct_of_income": round(cost_pct, 3),
     }
 
 

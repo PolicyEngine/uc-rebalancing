@@ -1,16 +1,26 @@
-"""Scenario configuration for the UC standard allowance uplift.
+"""Scenario configuration for the UC rebalancing impact.
 
-The Universal Credit Act 2025 raises the UC standard allowance above
-inflation each year from 2026/27 to 2029/30. The schedule itself lives in
-PolicyEngine UK at
-``gov.dwp.universal_credit.rebalancing.standard_allowance_uplift`` and is
-read from there at run time, not duplicated in this package.
+The Universal Credit Act 2025 packages two changes under a single
+``gov.dwp.universal_credit.rebalancing.active`` flag in PolicyEngine UK:
+
+* ``rebalancing.standard_allowance_uplift`` — a cumulative above-inflation
+  uplift to the UC standard allowance from April 2026, reaching +4.8% by
+  2029/30.
+* ``rebalancing.new_claimant_health_element`` — fixes the monthly UC
+  health element at £217.26 for new claimants from April 2026, the
+  loser leg of the bill.
+
+This dashboard toggles the parent flag, so the reported impact is the
+net effect of both legs against a counterfactual where the entire
+rebalancing package is switched off. The internal POLICY_ID is kept as
+``uc_standard_allowance_uplift`` for backwards compatibility with the
+dashboard payload schema.
 """
 
 from __future__ import annotations
 
 POLICY_ID = "uc_standard_allowance_uplift"
-POLICY_TITLE = "UC standard allowance uplift"
+POLICY_TITLE = "UC rebalancing analysis"
 
 REBALANCING_PARAMETER = "gov.dwp.universal_credit.rebalancing.active"
 UPLIFT_PARAMETER = (
@@ -55,12 +65,14 @@ def policy_description(schedule: dict[int, float]) -> str:
     final_year = max(schedule)
     final_pct = schedule[final_year] * 100
     return (
-        f"From April {min(schedule)} the Universal Credit standard allowance "
-        f"rises by more than CPI each year, reaching a {final_pct:.1f}% "
-        f"cumulative above-inflation uplift by {final_year}/"
-        f"{(final_year + 1) % 100:02d}. This dashboard compares current law "
-        "(uplift active) with a counterfactual where the rebalancing "
-        "parameter is switched off."
+        f"From April {min(schedule)} the Universal Credit Act 2025 introduces "
+        "two changes under a single rebalancing flag: an above-inflation uplift "
+        f"to the standard allowance, reaching {final_pct:.1f}% cumulatively by "
+        f"{final_year}/{(final_year + 1) % 100:02d}, and a fixed monthly health "
+        "element of £217.26 for new claimants. This dashboard toggles "
+        "gov.dwp.universal_credit.rebalancing.active, so the reported impact is "
+        "the net effect of both legs against a counterfactual where the "
+        "rebalancing package is switched off."
     )
 
 
@@ -73,39 +85,81 @@ def scenario_label(year: int, schedule: dict[int, float]) -> str:
     return f"{year}/{(year + 1) % 100:02d} ({pct * 100:.1f}%)"
 
 
+_DWP_IA_URL = (
+    "https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/"
+    "withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf"
+)
+
 PUBLISHED_ESTIMATES = [
     {
         "source": "DWP Impact Assessment",
-        "metric": "Households gaining (2029/30)",
-        "value": "6,690,000",
-        "year": "2029/30",
-        "url": (
-            "https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/"
-            "withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf"
-        ),
-    },
-    {
-        "source": "DWP Impact Assessment",
-        "metric": "Aggregate static cost",
+        "leg": "sa",
+        "metric": "SA leg cost (post-behavioural)",
         "value": "£1.85bn",
+        "value_bn": 1.85,
         "year": "2029/30",
-        "url": (
-            "https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/"
-            "withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf"
-        ),
+        "table": "Table 4",
+        "url": _DWP_IA_URL,
     },
     {
         "source": "DWP Impact Assessment",
+        "leg": "sa",
+        "metric": "Households gaining from SA uplift",
+        "value": "6,690,000",
+        "value_count": 6_690_000,
+        "year": "2029/30",
+        "table": "Table 2",
+        "url": _DWP_IA_URL,
+    },
+    {
+        "source": "DWP Impact Assessment",
+        "leg": "he",
+        "metric": "Net UCHE saving (after SCC/SREL protection)",
+        "value": "£2.10bn",
+        "value_bn": -2.10,
+        "year": "2029/30",
+        "table": "Table 9",
+        "url": _DWP_IA_URL,
+    },
+    {
+        "source": "DWP Impact Assessment",
+        "leg": "he",
+        "metric": "New LCWRA claimants on lower rate",
+        "value": "750,000",
+        "value_count": 750_000,
+        "year": "2029/30",
+        "table": "Table 9",
+        "url": _DWP_IA_URL,
+    },
+    {
+        "source": "DWP Impact Assessment",
+        "leg": "total",
+        "metric": "Net package cost to households (SA cost less UCHE saving)",
+        "value": "-£0.21bn",
+        "value_bn": -0.21,
+        "year": "2029/30",
+        "table": "Tables 4 + 9",
+        "url": _DWP_IA_URL,
+    },
+    {
+        "source": "DWP Impact Assessment",
+        "leg": "sa",
         "metric": "Single 25+ nominal increase 2025/26 to 2029/30",
         "value": "£725/yr",
         "year": "2029/30",
-        "url": (
-            "https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/"
-            "withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf"
-        ),
+        "url": _DWP_IA_URL,
+    },
+    {
+        "source": "DWP Impact Assessment",
+        "leg": "he",
+        "metric": "New LCWRA monthly rate cut (£423.27 → £217.26)",
+        "value": "-£2,472/yr",
+        "year": "2026/27",
+        "url": _DWP_IA_URL,
     },
     {
         "source": "IFS",
+        "leg": "sa",
         "metric": "Single 25+ above-inflation slice only",
         "value": "£247/yr",
         "year": "2029/30",

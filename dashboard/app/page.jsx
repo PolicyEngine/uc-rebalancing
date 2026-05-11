@@ -65,7 +65,7 @@ function Dashboard() {
     <div className="app-shell min-h-screen">
       <header className="title-row">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 md:px-8">
-          <h1>UC standard allowance uplift</h1>
+          <h1>UC rebalancing analysis</h1>
         </div>
       </header>
 
@@ -73,15 +73,8 @@ function Dashboard() {
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.05rem] leading-relaxed text-slate-600">
             This dashboard uses PolicyEngine UK to validate the fiscal and
-            distributional impact of the Universal Credit standard allowance{" "}
-            <a
-              href="https://www.msn.com/en-gb/money/other/dwp-confirms-first-time-ever-change-to-universal-credit-affecting-4-million-claimants/ar-AA22p7T8?ocid=finance-verthp-feeds"
-              target="_blank"
-              rel="noreferrer"
-            >
-              uplift
-            </a>{" "}
-            legislated by the{" "}
+            distributional impact of the Universal Credit rebalancing
+            package legislated by the{" "}
             <a
               href="https://www.legislation.gov.uk/ukpga/2025/22/pdfs/ukpga_20250022_en.pdf"
               target="_blank"
@@ -89,10 +82,27 @@ function Dashboard() {
             >
               Universal Credit Act 2025
             </a>
-            . The <strong>Impact</strong> tab shows aggregate cost,
-            household-level gain, and distribution by income decile. The{" "}
-            <strong>Methodology</strong> tab explains the model, the
-            counterfactual, and what the static analysis omits.
+            : an above-inflation{" "}
+            <a
+              href="https://www.msn.com/en-gb/money/other/dwp-confirms-first-time-ever-change-to-universal-credit-affecting-4-million-claimants/ar-AA22p7T8?ocid=finance-verthp-feeds"
+              target="_blank"
+              rel="noreferrer"
+            >
+              uplift
+            </a>{" "}
+            to the standard allowance and a{" "}
+            <a
+              href="https://bills.parliament.uk/publications/62123/documents/6889#page=16"
+              target="_blank"
+              rel="noreferrer"
+            >
+              fixed
+            </a>{" "}
+            monthly health element for new claimants from April 2026. The{" "}
+            <strong>Impact</strong> tab
+            shows aggregate cost, household-level gain, and distribution by
+            income decile. The <strong>Methodology</strong> tab explains the
+            model, the counterfactual, and what the static analysis omits.
           </p>
         </div>
 

@@ -1,7 +1,10 @@
-# UC Standard Allowance Uplift dashboard
+# UC Rebalancing Analysis dashboard
 
-PolicyEngine UK validation of the Universal Credit standard allowance
-uplift legislated by the Universal Credit Act 2025. Static, first-round
+PolicyEngine UK validation of the Universal Credit rebalancing package
+legislated by the Universal Credit Act 2025: an above-inflation uplift
+to the standard allowance and a fixed monthly health element of £217.26
+for new claimants from April 2026, both toggled together via
+`gov.dwp.universal_credit.rebalancing.active`. Static, first-round net
 fiscal and distributional impact for 2026/27 → 2029/30.
 
 ## Repository layout

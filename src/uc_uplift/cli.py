@@ -14,7 +14,7 @@ from .pipeline import (
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Generate dashboard-ready UC standard allowance uplift results. "
+            "Generate dashboard-ready UC rebalancing impact results. "
             "Years and uplift percentages are read from PolicyEngine UK "
             "parameters at run time."
         ),
