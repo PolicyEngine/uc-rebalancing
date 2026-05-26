@@ -193,6 +193,43 @@ function LegDropdown({ value, onChange }) {
   );
 }
 
+function ArchetypeSelect({ label, value, options, onChange }) {
+  return (
+    <label className="flex flex-col gap-1 text-xs">
+      <span className="font-medium uppercase tracking-[0.08em] text-slate-400">
+        {label}
+      </span>
+      <select
+        value={String(value)}
+        onChange={(e) => {
+          const raw = e.target.value;
+          const match = options.find((o) => String(o.value) === raw);
+          onChange(match.value);
+        }}
+        className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700 hover:border-slate-300 focus:border-primary-500 focus:outline-none"
+      >
+        {options.map((o) => (
+          <option key={String(o.value)} value={String(o.value)}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function findGridRow(rows, query) {
+  return rows.find((row) =>
+    Object.entries(query).every(([key, value]) => row[key] === value),
+  );
+}
+
+function isCanonical(archetype, canonical) {
+  return Object.entries(canonical).every(
+    ([key, value]) => archetype[key] === value,
+  );
+}
+
 function YearDropdown({ value, options, onChange }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
@@ -295,6 +332,28 @@ export default function ReformTab({ data }) {
   const primaryScenarioId = data.policies[policyId].primary_scenario;
   const finalYear = data.year;
 
+  const grid = data.policies[policyId].per_claimant_grid;
+  const [archetype, setArchetype] = useState(
+    grid ? grid.canonical_archetype : null,
+  );
+  const [claimTiming, setClaimTiming] = useState("new");
+  const saRow = useMemo(
+    () => (grid && archetype ? findGridRow(grid.sa, archetype) : null),
+    [grid, archetype],
+  );
+  const heRow = useMemo(
+    () =>
+      grid && archetype
+        ? findGridRow(grid.he, { ...archetype, claim_timing: claimTiming })
+        : null,
+    [grid, archetype, claimTiming],
+  );
+  const saIsCanonical =
+    grid && archetype
+      ? isCanonical(archetype, grid.canonical_archetype)
+      : false;
+  const heIsCanonical = saIsCanonical && claimTiming === "new";
+
   const [decileScenario, setDecileScenario] = useState(primaryScenarioId);
   const [wlScenario, setWlScenario] = useState(primaryScenarioId);
   const decileYear = data.policies[policyId].scenarios[decileScenario].year;
@@ -353,15 +412,25 @@ export default function ReformTab({ data }) {
   const cumulativePct = (
     Math.max(...Object.values(schedule).map(Number)) * 100
   ).toFixed(1);
-  const newClaimantMonthly = `£${data.policies[
-    policyId
-  ].health_element_monthly.new_claimant.toLocaleString("en-GB", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  const health = data.policies[policyId].health_element_monthly;
+  const gbp = (v) =>
+    `£${v.toLocaleString("en-GB", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  const newClaimantMonthly = gbp(health.new_claimant);
+  const baselineBaseYearMonthly = gbp(health.baseline_base_year);
+  const baselinePrimaryYearMonthly = gbp(health.baseline_primary_year);
   const reformStartYear = Math.min(
     ...Object.keys(schedule).map((y) => Number(y)),
   );
+  const scheduleRows = Object.keys(schedule)
+    .map((y) => Number(y))
+    .sort((a, b) => a - b)
+    .map((y) => ({
+      year: y,
+      pct: schedule[String(y)] * 100,
+    }));
   const dwpSaCost = getPublishedByLeg(data, policyId, "sa", "SA leg cost");
   const dwpSaGainers = getPublishedByLeg(data, policyId, "sa", "Households gaining");
   const dwpHeSaving = getPublishedByLeg(data, policyId, "he", "UCHE saving");
@@ -391,39 +460,124 @@ export default function ReformTab({ data }) {
               target="_blank"
               rel="noreferrer"
             >
-              Act
+              Act 2025
             </a>{" "}
-            2025 packages two changes under a single rebalancing flag: it
-            raises the standard allowance above CPI each April from 2026 to
-            2029, reaching a{" "}
-            <a
-              href="https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {cumulativePct}%
-            </a>{" "}
-            cumulative real-terms{" "}
-            increase by {fyLabel(finalYear)}, and fixes the monthly UC
-            health element at{" "}
-            <a
-              href="https://bills.parliament.uk/publications/62123/documents/6889#page=16"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {newClaimantMonthly}
-            </a>{" "}
-            for new claimants from April 2026. This
-            section quantifies the static net impact in {fyLabel(finalYear)}:
-            how much it costs the Exchequer, how many households gain and lose
-            and by how much, how the impact is distributed across the income
-            distribution, and how a representative single-25+ claimant fares.
-            Headline numbers are shown alongside the published DWP Impact
-            Assessment and IFS estimates so the policyengine.py results can
-            be checked directly against them.
+            bundles two opposing changes under one rebalancing flag, both
+            effective 1 April {reformStartYear}: an above-CPI uplift to the
+            standard allowance (winners) and a freeze of the monthly UC health
+            element for new LCWRA claims (losers). LCWRA stands for{" "}
+            <em>limited capability for work and work-related activity</em> —
+            the UC health element paid to claimants assessed as unable to work
+            or prepare for work because of a health condition. The two legs
+            partly offset,
+            so the net impact is small but distributionally meaningful —
+            gainers cluster in the bottom half of the income distribution;
+            losers are concentrated among new LCWRA claimants in the
+            lower-middle deciles. The rest of this page quantifies the static
+            net impact in {fyLabel(finalYear)} alongside the published DWP
+            Impact Assessment and IFS estimates.
           </>
         }
       />
+
+      {/* What's changing — at-a-glance table of parameter values before/after */}
+      <div className="section-card">
+        <h3 className="text-lg font-semibold text-slate-900">
+          What is changing
+        </h3>
+        <p className="mt-1 text-sm text-slate-500">
+          The two parameters governed by the rebalancing flag, with their
+          values before and after the reform.
+        </p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-[11px] uppercase tracking-wide text-slate-400">
+                <th className="py-2 pr-4 font-medium">Parameter</th>
+                <th className="py-2 pr-4 font-medium">
+                  Before ({fyLabel(reformStartYear - 1)})
+                </th>
+                <th className="py-2 pr-4 font-medium">
+                  After ({fyLabel(finalYear)})
+                </th>
+                <th className="py-2 pr-0 font-medium">Effective from</th>
+              </tr>
+            </thead>
+            <tbody className="text-slate-700">
+              <tr className="border-b border-slate-100 align-top">
+                <td className="py-3 pr-4">
+                  <div className="font-semibold">
+                    Standard allowance, above-CPI uplift
+                  </div>
+                  <div className="mt-0.5 text-xs text-slate-500">
+                    Winner leg — gain to all UC households.
+                  </div>
+                </td>
+                <td className="py-3 pr-4 tabular-nums">0.0%</td>
+                <td className="py-3 pr-4 tabular-nums">
+                  <a
+                    href="https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-slate-300 hover:decoration-slate-500"
+                  >
+                    +{cumulativePct}% cumulative
+                  </a>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {scheduleRows.map((r, i) => (
+                      <span key={r.year} className="tabular-nums">
+                        {fyLabel(r.year)} +{r.pct.toFixed(1)}%
+                        {i < scheduleRows.length - 1 ? " · " : ""}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                <td className="py-3 pr-0">1 April {reformStartYear}</td>
+              </tr>
+              <tr className="align-top">
+                <td className="py-3 pr-4">
+                  <div className="font-semibold">
+                    UC health element, new LCWRA claims (monthly)
+                  </div>
+                  <div className="mt-0.5 text-xs text-slate-500">
+                    Loser leg — affects only new claims after April{" "}
+                    {reformStartYear}; pre-2026 claims keep the CPI-indexed
+                    amount.
+                  </div>
+                </td>
+                <td className="py-3 pr-4 tabular-nums">
+                  <a
+                    href="https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-slate-300 hover:decoration-slate-500"
+                  >
+                    {baselineBaseYearMonthly}
+                  </a>
+                  <div className="mt-1 text-xs text-slate-500">
+                    CPI-indexed; would reach {baselinePrimaryYearMonthly} by{" "}
+                    {fyLabel(finalYear)}
+                  </div>
+                </td>
+                <td className="py-3 pr-4 tabular-nums">
+                  <a
+                    href="https://bills.parliament.uk/publications/62123/documents/6889#page=16"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-slate-300 hover:decoration-slate-500"
+                  >
+                    {newClaimantMonthly}
+                  </a>
+                  <div className="mt-1 text-xs text-slate-500">
+                    fixed; no CPI uprating
+                  </div>
+                </td>
+                <td className="py-3 pr-0">1 April {reformStartYear}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Per-leg comparison vs DWP Impact Assessment — three boxes */}
       {summary && summarySa && summaryHe && (
@@ -556,42 +710,71 @@ export default function ReformTab({ data }) {
         </div>
       )}
 
-      {/* Per-claimant archetypes — gainer + LCWRA loser */}
-      {(claimants || claimant) && (
+      {/* Per-claimant archetypes — interactive grid */}
+      {grid && archetype && (
         <div className="section-card">
           <SectionHeading
-            title={`Per-claimant validation (${fyLabel(finalYear)})`}
+            title={`Per-claimant impact (${fyLabel(finalYear)})`}
             description={
               <>
-                Two single 25+ archetypes, each isolating one leg of the
-                package and benchmarked against the matching published
-                per-claimant figure.
+                Pick the household profile to see how each leg of the package
+                affects a representative claimant. The IFS and DWP IA
+                benchmarks are shown when the inputs match their canonical
+                archetype (single, 25 or over, no children, no employment
+                income, new LCWRA claim).
               </>
             }
           />
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+            <ArchetypeSelect
+              label="Family"
+              value={archetype.family_type}
+              options={grid.input_options.family_type}
+              onChange={(v) => setArchetype({ ...archetype, family_type: v })}
+            />
+            <ArchetypeSelect
+              label="Children"
+              value={archetype.num_children}
+              options={grid.input_options.num_children}
+              onChange={(v) => setArchetype({ ...archetype, num_children: v })}
+            />
+            <ArchetypeSelect
+              label="Income"
+              value={archetype.employment_income}
+              options={grid.input_options.employment_income}
+              onChange={(v) =>
+                setArchetype({ ...archetype, employment_income: v })
+              }
+            />
+            <ArchetypeSelect
+              label="Age"
+              value={archetype.age_band}
+              options={grid.input_options.age_band}
+              onChange={(v) => setArchetype({ ...archetype, age_band: v })}
+            />
+            <ArchetypeSelect
+              label="LCWRA claim"
+              value={claimTiming}
+              options={grid.input_options.claim_timing}
+              onChange={setClaimTiming}
+            />
+          </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {(claimants?.gainer_standard_allowance || claimant) && (
-              <div className="metric-card">
-                <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-                  Single 25+, no LCWRA: UC uplift
+            <div className="metric-card">
+              <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
+                Standard allowance leg — UC uplift
+              </div>
+              <div className="mt-4">
+                <div className="text-[11px] uppercase tracking-wide text-slate-400">
+                  Above-inflation slice ({fyLabel(finalYear)} only)
                 </div>
-                <div className="mt-3">
-                  <div className="text-[11px] uppercase tracking-wide text-slate-400">
-                    Above-inflation slice (
-                    {fyLabel(
-                      (claimants?.gainer_standard_allowance || claimant)
-                        .target_year,
-                    )}{" "}
-                    only)
-                  </div>
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold tracking-tight text-slate-900">
-                      {formatCurrency(
-                        (claimants?.gainer_standard_allowance || claimant)
-                          .above_inflation_uplift,
-                      )}
-                      /yr
-                    </span>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold tracking-tight text-slate-900">
+                    {saRow
+                      ? `${formatCurrency(saRow.above_inflation_uplift)}/yr`
+                      : "—"}
+                  </span>
+                  {saIsCanonical && (
                     <span className="text-xs text-slate-400">
                       vs (
                       <a
@@ -603,58 +786,51 @@ export default function ReformTab({ data }) {
                       </a>
                       ): {ifsClaimant.value.replace("/yr", "")}
                     </span>
-                  </div>
-                </div>
-                <div className="mt-3 text-xs leading-5 text-slate-500">
-                  Single 25+, no employment income, no LCWRA — isolates the
-                  standard allowance uplift. The 4.8% above-CPI slice in
-                  2029/30 is benchmarked against the IFS estimate.
+                  )}
                 </div>
               </div>
-            )}
-            {claimants?.loser_new_lcwra && (
-              <div className="metric-card">
-                <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-                  Single 25+ LCWRA, new claim: UC cut
+              <div className="mt-3 text-xs leading-5 text-slate-500">
+                UC at {fyLabel(finalYear)} with the SA uplift minus UC with
+                rebalancing switched off — isolates the standard allowance leg.
+                The LCWRA-claim setting does not affect this card.
+              </div>
+            </div>
+
+            <div className="metric-card">
+              <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
+                Health element leg — UC cut for LCWRA claims
+              </div>
+              <div className="mt-4">
+                <div className="text-[11px] uppercase tracking-wide text-slate-400">
+                  Annual UC change ({fyLabel(finalYear)})
                 </div>
-                <div className="mt-3">
-                  <div className="text-[11px] uppercase tracking-wide text-slate-400">
-                    Above-inflation cut (
-                    {fyLabel(claimants.loser_new_lcwra.target_year)} only)
-                  </div>
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold tracking-tight text-slate-900">
-                      {formatCurrency(
-                        claimants.loser_new_lcwra.rebalancing_impact,
-                      )}
-                      /yr
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold tracking-tight text-slate-900">
+                    {heRow
+                      ? `${formatCurrency(heRow.rebalancing_impact)}/yr`
+                      : "—"}
+                  </span>
+                  {heIsCanonical && dwpHeRateCut && (
+                    <span className="text-xs text-slate-400">
+                      vs (
+                      <a
+                        href={dwpHeRateCut.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {dwpHeRateCut.source.split(" ")[0]}
+                      </a>
+                      ): {dwpHeRateCut.value.replace("/yr", "")}
                     </span>
-                    {dwpHeRateCut && (
-                      <span className="text-xs text-slate-400">
-                        vs (
-                        <a
-                          href={dwpHeRateCut.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {dwpHeRateCut.source.split(" ")[0]}
-                        </a>
-                        ): {dwpHeRateCut.value.replace("/yr", "")}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-3 text-xs leading-5 text-slate-500">
-                  Single 25+, no employment income, makes a new LCWRA claim
-                  from April 2026 — isolates the health element freeze. The
-                  health element is fixed at £
-                  {claimants.loser_new_lcwra.new_claimant_health_element_monthly}
-                  /month against the CPI-indexed £423.27, and the annual cut
-                  is benchmarked against the per-claimant rate change in the
-                  DWP IA.
+                  )}
                 </div>
               </div>
-            )}
+              <div className="mt-3 text-xs leading-5 text-slate-500">
+                {claimTiming === "new"
+                  ? `New LCWRA claim from April ${reformStartYear} — health element fixed at ${newClaimantMonthly}/month against the CPI-indexed amount; the figure includes the offsetting standard allowance uplift.`
+                  : `Pre-${reformStartYear} LCWRA claim — protected on the CPI-indexed health element, so the only UC change is the standard allowance uplift.`}
+              </div>
+            </div>
           </div>
         </div>
       )}
