@@ -9,6 +9,16 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BASE_PATH: BASE_PATH,
   },
+  async redirects() {
+    return [
+      {
+        source: "/",
+        destination: BASE_PATH,
+        basePath: false,
+        permanent: false,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
