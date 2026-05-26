@@ -10,7 +10,7 @@
     "uc_rebalancing": {
       "id": "uc_rebalancing",
       "title": "UC rebalancing analysis",
-      "description": "From April 2026 the Universal Credit Act 2025 introduces two changes under a single rebalancing flag: an above-inflation uplift to the standard allowance, reaching 4.8% cumulatively by 2029/30, and a fixed monthly health element of \u00a3217.26 for new claimants. This dashboard toggles gov.dwp.universal_credit.rebalancing.active, so the reported impact is the net effect of both legs against a counterfactual where the rebalancing package is switched off.",
+      "description": "From April 2026 the Universal Credit Act 2025 introduces two changes under a single rebalancing flag: an above-inflation uplift to the standard allowance, reaching 4.8% cumulatively by 2029-30, and a fixed monthly health element of \u00a3217.26 for new claimants. This dashboard toggles gov.dwp.universal_credit.rebalancing.active, so the reported impact is the net effect of both legs against a counterfactual where the rebalancing package is switched off.",
       "uplift_schedule": {
         "2026": 0.023,
         "2027": 0.031,
@@ -27,9 +27,381 @@
         "baseline_primary_year": 465.81
       },
       "scenarios": {
+        "fy_2026_27": {
+          "id": "fy_2026_27",
+          "label": "2026-27 (2.3%)",
+          "year": 2026,
+          "uplift_pct": 0.023,
+          "summary": {
+            "total_cost_bn": -1.424,
+            "total_cost_mn": -1424.5,
+            "n_gaining": 0,
+            "n_losing": 2039132,
+            "avg_gain_per_hh": null,
+            "baseline_net_income_bn": 1742.1,
+            "cost_pct_of_income": -0.082
+          },
+          "summary_sa": {
+            "total_cost_bn": 0.0,
+            "total_cost_mn": 0.0,
+            "n_gaining": 0,
+            "n_losing": 0,
+            "avg_gain_per_hh": null,
+            "baseline_net_income_bn": 1742.1,
+            "cost_pct_of_income": 0.0
+          },
+          "summary_he": {
+            "total_cost_bn": -1.424,
+            "total_cost_mn": -1424.5,
+            "n_gaining": 0,
+            "n_losing": 2039132,
+            "avg_gain_per_hh": null,
+            "baseline_net_income_bn": 1742.1,
+            "cost_pct_of_income": -0.082
+          },
+          "inequality_poverty": {
+            "gini_baseline": 0.300811,
+            "gini_reform": 0.301243,
+            "gini_change_pp": 0.04324,
+            "poverty_rate_baseline": 10.206,
+            "poverty_rate_reform": 10.22,
+            "poverty_rate_change_pp": 0.014,
+            "people_lifted_out_of_poverty": -9752
+          },
+          "by_decile": [
+            {
+              "decile": 1,
+              "mean_gain": -2.0,
+              "pct_of_income": -0.008,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 1.37,
+              "pct_unchanged": 98.63
+            },
+            {
+              "decile": 2,
+              "mean_gain": -30.0,
+              "pct_of_income": -0.101,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 5.73,
+              "pct_unchanged": 94.27
+            },
+            {
+              "decile": 3,
+              "mean_gain": -55.0,
+              "pct_of_income": -0.151,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 10.15,
+              "pct_unchanged": 89.85
+            },
+            {
+              "decile": 4,
+              "mean_gain": -91.0,
+              "pct_of_income": -0.24,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 11.04,
+              "pct_unchanged": 88.96
+            },
+            {
+              "decile": 5,
+              "mean_gain": -129.0,
+              "pct_of_income": -0.309,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 16.76,
+              "pct_unchanged": 83.24
+            },
+            {
+              "decile": 6,
+              "mean_gain": -81.0,
+              "pct_of_income": -0.152,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 4.78,
+              "pct_unchanged": 95.22
+            },
+            {
+              "decile": 7,
+              "mean_gain": -13.0,
+              "pct_of_income": -0.025,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 8.22,
+              "pct_unchanged": 91.78
+            },
+            {
+              "decile": 8,
+              "mean_gain": -32.0,
+              "pct_of_income": -0.048,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 2.7,
+              "pct_unchanged": 97.3
+            },
+            {
+              "decile": 9,
+              "mean_gain": -6.0,
+              "pct_of_income": -0.008,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 1.59,
+              "pct_unchanged": 98.41
+            },
+            {
+              "decile": 10,
+              "mean_gain": -1.0,
+              "pct_of_income": -0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.08,
+              "pct_unchanged": 99.92
+            }
+          ],
+          "by_decile_sa": [
+            {
+              "decile": 1,
+              "mean_gain": 0.0,
+              "pct_of_income": 0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.0,
+              "pct_unchanged": 100.0
+            },
+            {
+              "decile": 2,
+              "mean_gain": 0.0,
+              "pct_of_income": 0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.0,
+              "pct_unchanged": 100.0
+            },
+            {
+              "decile": 3,
+              "mean_gain": 0.0,
+              "pct_of_income": 0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.0,
+              "pct_unchanged": 100.0
+            },
+            {
+              "decile": 4,
+              "mean_gain": 0.0,
+              "pct_of_income": 0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.0,
+              "pct_unchanged": 100.0
+            },
+            {
+              "decile": 5,
+              "mean_gain": 0.0,
+              "pct_of_income": 0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.0,
+              "pct_unchanged": 100.0
+            },
+            {
+              "decile": 6,
+              "mean_gain": 0.0,
+              "pct_of_income": 0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.0,
+              "pct_unchanged": 100.0
+            },
+            {
+              "decile": 7,
+              "mean_gain": 0.0,
+              "pct_of_income": 0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.0,
+              "pct_unchanged": 100.0
+            },
+            {
+              "decile": 8,
+              "mean_gain": 0.0,
+              "pct_of_income": 0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.0,
+              "pct_unchanged": 100.0
+            },
+            {
+              "decile": 9,
+              "mean_gain": 0.0,
+              "pct_of_income": 0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.0,
+              "pct_unchanged": 100.0
+            },
+            {
+              "decile": 10,
+              "mean_gain": 0.0,
+              "pct_of_income": 0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.0,
+              "pct_unchanged": 100.0
+            }
+          ],
+          "by_decile_he": [
+            {
+              "decile": 1,
+              "mean_gain": -2.0,
+              "pct_of_income": -0.008,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 1.37,
+              "pct_unchanged": 98.63
+            },
+            {
+              "decile": 2,
+              "mean_gain": -30.0,
+              "pct_of_income": -0.101,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 5.73,
+              "pct_unchanged": 94.27
+            },
+            {
+              "decile": 3,
+              "mean_gain": -55.0,
+              "pct_of_income": -0.151,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 10.15,
+              "pct_unchanged": 89.85
+            },
+            {
+              "decile": 4,
+              "mean_gain": -91.0,
+              "pct_of_income": -0.24,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 11.04,
+              "pct_unchanged": 88.96
+            },
+            {
+              "decile": 5,
+              "mean_gain": -129.0,
+              "pct_of_income": -0.309,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 16.76,
+              "pct_unchanged": 83.24
+            },
+            {
+              "decile": 6,
+              "mean_gain": -81.0,
+              "pct_of_income": -0.152,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 4.78,
+              "pct_unchanged": 95.22
+            },
+            {
+              "decile": 7,
+              "mean_gain": -13.0,
+              "pct_of_income": -0.025,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 8.22,
+              "pct_unchanged": 91.78
+            },
+            {
+              "decile": 8,
+              "mean_gain": -32.0,
+              "pct_of_income": -0.048,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 2.7,
+              "pct_unchanged": 97.3
+            },
+            {
+              "decile": 9,
+              "mean_gain": -6.0,
+              "pct_of_income": -0.008,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 1.59,
+              "pct_unchanged": 98.41
+            },
+            {
+              "decile": 10,
+              "mean_gain": -1.0,
+              "pct_of_income": -0.0,
+              "mean_gain_gainers": null,
+              "pct_of_income_gainers": null,
+              "pct_winners": 0.0,
+              "pct_losers": 0.08,
+              "pct_unchanged": 99.92
+            }
+          ],
+          "winners_losers": {
+            "n_winners": 0,
+            "n_losers": 2039132,
+            "n_unchanged": 30036265,
+            "pct_winners": 0.0,
+            "pct_losers": 6.3573,
+            "pct_unchanged": 93.64
+          },
+          "winners_losers_sa": {
+            "n_winners": 0,
+            "n_losers": 0,
+            "n_unchanged": 32075398,
+            "pct_winners": 0.0,
+            "pct_losers": 0.0,
+            "pct_unchanged": 100.0
+          },
+          "winners_losers_he": {
+            "n_winners": 0,
+            "n_losers": 2039132,
+            "n_unchanged": 30036265,
+            "pct_winners": 0.0,
+            "pct_losers": 6.3573,
+            "pct_unchanged": 93.64
+          }
+        },
         "fy_2027_28": {
           "id": "fy_2027_28",
-          "label": "2027/28 (3.1%)",
+          "label": "2027-28 (3.1%)",
           "year": 2027,
           "uplift_pct": 0.031,
           "summary": {
@@ -401,7 +773,7 @@
         },
         "fy_2028_29": {
           "id": "fy_2028_29",
-          "label": "2028/29 (4.0%)",
+          "label": "2028-29 (4.0%)",
           "year": 2028,
           "uplift_pct": 0.04,
           "summary": {
@@ -773,7 +1145,7 @@
         },
         "fy_2029_30": {
           "id": "fy_2029_30",
-          "label": "2029/30 (4.8%)",
+          "label": "2029-30 (4.8%)",
           "year": 2029,
           "uplift_pct": 0.048,
           "summary": {

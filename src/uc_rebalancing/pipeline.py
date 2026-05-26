@@ -71,13 +71,14 @@ def _strip_rebalanced_lcwra(sim, years: tuple[int, ...]) -> None:
 
 
 def _financial_years(schedule: dict[int, float]) -> list[int]:
-    """PE UK reads parameters as of 1 January each year, but the rebalancing
-    schedule takes effect on 1 April. Calling ``calculate(..., period=Y)``
-    for Y == reform_start_year therefore returns pre-reform amounts and a
-    zero-gain scenario, so the first year of the schedule is dropped from
-    the dashboard output.
+    """Calendar years to evaluate, one per row of the uplift schedule.
+
+    PE UK's rebalancing parameter is keyed at 1 January each year (the
+    schedule values change in lockstep with the financial year start in
+    April), so ``period=Y`` already returns the post-reform amount for the
+    full schedule including the first year.
     """
-    return sorted(schedule)[1:]
+    return sorted(schedule)
 
 
 def _rebalancing_off_reform(reform_start: str, reform_end: str) -> dict:

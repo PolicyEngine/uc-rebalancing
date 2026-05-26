@@ -83,7 +83,7 @@ def policy_description(
         f"From April {min(schedule)} the Universal Credit Act 2025 introduces "
         "two changes under a single rebalancing flag: an above-inflation uplift "
         f"to the standard allowance, reaching {final_pct:.1f}% cumulatively by "
-        f"{final_year}/{(final_year + 1) % 100:02d}, and a fixed monthly health "
+        f"{final_year}-{(final_year + 1) % 100:02d}, and a fixed monthly health "
         f"element of £{new_claimant_monthly:,.2f} for new claimants. This "
         "dashboard toggles gov.dwp.universal_credit.rebalancing.active, so the "
         "reported impact is the net effect of both legs against a counterfactual "
@@ -97,7 +97,7 @@ def scenario_id(year: int) -> str:
 
 def scenario_label(year: int, schedule: dict[int, float]) -> str:
     pct = schedule[year]
-    return f"{year}/{(year + 1) % 100:02d} ({pct * 100:.1f}%)"
+    return f"{year}-{(year + 1) % 100:02d} ({pct * 100:.1f}%)"
 
 
 _DWP_IA_URL = (

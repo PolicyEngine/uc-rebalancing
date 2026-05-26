@@ -78,7 +78,7 @@ function CustomTooltip({ active, payload, label, formatter }) {
 }
 
 function fyLabel(year) {
-  return `${year}/${String((year + 1) % 100).padStart(2, "0")}`;
+  return `${year}-${String((year + 1) % 100).padStart(2, "0")}`;
 }
 
 const LEG_OPTIONS = [
@@ -193,6 +193,93 @@ function LegDropdown({ value, onChange }) {
   );
 }
 
+function YearDropdown({ value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+  const current = options.find((o) => o.id === value);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(event) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
+        setOpen(false);
+      }
+    }
+    function handleKey(event) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="text-slate-400">Year:</span>
+        <span>{current.label}</span>
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 10 10"
+          aria-hidden="true"
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <path
+            d="M2 4l3 3 3-3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open && (
+        <div
+          role="listbox"
+          className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+        >
+          {options.map((opt) => {
+            const active = opt.id === value;
+            return (
+              <button
+                key={opt.id}
+                role="option"
+                aria-selected={active}
+                type="button"
+                className={`flex w-full px-3 py-2 text-left text-xs ${
+                  active
+                    ? "bg-primary-50 font-semibold text-primary-700"
+                    : "text-slate-700 hover:bg-slate-50"
+                }`}
+                onClick={() => {
+                  onChange(opt.id);
+                  setOpen(false);
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function publishedByMetric(data, policyId, needle) {
   const estimates =
     data.policies[policyId].published_comparison.estimates;
@@ -201,46 +288,49 @@ function publishedByMetric(data, policyId, needle) {
 
 export default function ReformTab({ data }) {
   const policyId = useMemo(() => getPrimaryPolicyId(data), [data]);
-  const primaryYear = data.year;
   const scenarioOptions = useMemo(
-    () =>
-      getScenarioOptions(data, policyId).filter(
-        (opt) => opt.year === primaryYear,
-      ),
-    [data, policyId, primaryYear],
+    () => getScenarioOptions(data, policyId),
+    [data, policyId],
   );
   const primaryScenarioId = data.policies[policyId].primary_scenario;
+  const finalYear = data.year;
 
-  const [selectedScenario, setSelectedScenario] = useState(primaryScenarioId);
+  const [decileScenario, setDecileScenario] = useState(primaryScenarioId);
+  const [wlScenario, setWlScenario] = useState(primaryScenarioId);
+  const decileYear = data.policies[policyId].scenarios[decileScenario].year;
+  const wlYear = data.policies[policyId].scenarios[wlScenario].year;
   const [impactMode, setImpactMode] = useState("abs");
   const [decileLeg, setDecileLeg] = useState("total");
   const [wlLeg, setWlLeg] = useState("total");
 
   useEffect(() => {
-    if (!scenarioOptions.find((opt) => opt.id === selectedScenario)) {
-      setSelectedScenario(primaryScenarioId);
+    if (!scenarioOptions.find((opt) => opt.id === decileScenario)) {
+      setDecileScenario(primaryScenarioId);
     }
-  }, [scenarioOptions, primaryScenarioId, selectedScenario]);
+    if (!scenarioOptions.find((opt) => opt.id === wlScenario)) {
+      setWlScenario(primaryScenarioId);
+    }
+  }, [scenarioOptions, primaryScenarioId, decileScenario, wlScenario]);
 
   const summary = useMemo(
-    () => deriveImpactSummary(data, policyId, selectedScenario),
-    [data, policyId, selectedScenario],
+    () => deriveImpactSummary(data, policyId, primaryScenarioId),
+    [data, policyId, primaryScenarioId],
   );
   const summarySa = useMemo(
-    () => data.policies[policyId].scenarios[selectedScenario].summary_sa,
-    [data, policyId, selectedScenario],
+    () => data.policies[policyId].scenarios[primaryScenarioId].summary_sa,
+    [data, policyId, primaryScenarioId],
   );
   const summaryHe = useMemo(
-    () => data.policies[policyId].scenarios[selectedScenario].summary_he,
-    [data, policyId, selectedScenario],
+    () => data.policies[policyId].scenarios[primaryScenarioId].summary_he,
+    [data, policyId, primaryScenarioId],
   );
   const decileData = useMemo(
-    () => deriveDecileBreakdown(data, policyId, selectedScenario, decileLeg),
-    [data, policyId, selectedScenario, decileLeg],
+    () => deriveDecileBreakdown(data, policyId, decileScenario, decileLeg),
+    [data, policyId, decileScenario, decileLeg],
   );
   const wlData = useMemo(
-    () => deriveDecileBreakdown(data, policyId, selectedScenario, wlLeg),
-    [data, policyId, selectedScenario, wlLeg],
+    () => deriveDecileBreakdown(data, policyId, wlScenario, wlLeg),
+    [data, policyId, wlScenario, wlLeg],
   );
   const claimant = useMemo(
     () => getPerClaimantTest(data, policyId),
@@ -252,8 +342,8 @@ export default function ReformTab({ data }) {
   );
   const inequality = useMemo(
     () =>
-      data.policies[policyId].scenarios[selectedScenario].inequality_poverty,
-    [data, policyId, selectedScenario],
+      data.policies[policyId].scenarios[primaryScenarioId].inequality_poverty,
+    [data, policyId, primaryScenarioId],
   );
   const policyDescription = useMemo(
     () => getPolicyDescription(data, policyId),
@@ -263,6 +353,12 @@ export default function ReformTab({ data }) {
   const cumulativePct = (
     Math.max(...Object.values(schedule).map(Number)) * 100
   ).toFixed(1);
+  const newClaimantMonthly = `£${data.policies[
+    policyId
+  ].health_element_monthly.new_claimant.toLocaleString("en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
   const reformStartYear = Math.min(
     ...Object.keys(schedule).map((y) => Number(y)),
   );
@@ -308,55 +404,32 @@ export default function ReformTab({ data }) {
               {cumulativePct}%
             </a>{" "}
             cumulative real-terms{" "}
-            increase by {fyLabel(primaryYear)}, and fixes the monthly UC
+            increase by {fyLabel(finalYear)}, and fixes the monthly UC
             health element at{" "}
             <a
               href="https://bills.parliament.uk/publications/62123/documents/6889#page=16"
               target="_blank"
               rel="noreferrer"
             >
-              £217.26
+              {newClaimantMonthly}
             </a>{" "}
             for new claimants from April 2026. This
-            section quantifies the static net impact in {fyLabel(primaryYear)}:
+            section quantifies the static net impact in {fyLabel(finalYear)}:
             how much it costs the Exchequer, how many households gain and lose
             and by how much, how the impact is distributed across the income
             distribution, and how a representative single-25+ claimant fares.
             Headline numbers are shown alongside the published DWP Impact
-            Assessment and IFS estimates so the PolicyEngine UK results can
+            Assessment and IFS estimates so the policyengine.py results can
             be checked directly against them.
           </>
         }
       />
 
-      {/* Scenario (year) selector — hidden when only one option */}
-      {scenarioOptions.length > 1 && (
-        <div className="section-card">
-          <SectionHeading
-            title="Choose a financial year"
-            description={policyDescription}
-          />
-          <div className="flex flex-wrap gap-3">
-            {scenarioOptions.map((option) => (
-              <button
-                key={option.id}
-                className={`toggle-button ${
-                  selectedScenario === option.id ? "active" : ""
-                }`}
-                onClick={() => setSelectedScenario(option.id)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Per-leg comparison vs DWP Impact Assessment — three boxes */}
       {summary && summarySa && summaryHe && (
         <div>
           <h3 className="mb-3 text-lg font-semibold text-slate-900">
-            Per-leg comparison vs DWP IA ({fyLabel(primaryYear)})
+            Per-leg comparison vs DWP IA ({fyLabel(finalYear)})
           </h3>
           <p className="mb-4 text-sm text-slate-500">
             The rebalancing flag bundles two legs that move in opposite
@@ -487,12 +560,12 @@ export default function ReformTab({ data }) {
       {(claimants || claimant) && (
         <div className="section-card">
           <SectionHeading
-            title="Per-claimant validation"
+            title={`Per-claimant validation (${fyLabel(finalYear)})`}
             description={
               <>
-                Two single 25+ archetypes in {fyLabel(primaryYear)}, each
-                isolating one leg of the package and benchmarked against the
-                matching published per-claimant figure.
+                Two single 25+ archetypes, each isolating one leg of the
+                package and benchmarked against the matching published
+                per-claimant figure.
               </>
             }
           />
@@ -589,41 +662,46 @@ export default function ReformTab({ data }) {
       {/* Decile chart + Winners and losers — side by side */}
       {decileData.length > 0 && (
         <div className="grid gap-8 xl:grid-cols-2">
-          <div className="section-card relative">
-            <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
-              <div className="flex rounded-md border border-slate-200 bg-white text-xs font-medium overflow-hidden">
-                <button
-                  className={`px-3 py-1.5 ${
-                    impactMode === "abs"
-                      ? "bg-primary-600 text-white"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`}
-                  onClick={() => setImpactMode("abs")}
-                >
-                  £
-                </button>
-                <button
-                  className={`px-3 py-1.5 ${
-                    impactMode === "pct"
-                      ? "bg-primary-600 text-white"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`}
-                  onClick={() => setImpactMode("pct")}
-                >
-                  %
-                </button>
-              </div>
-              <LegDropdown value={decileLeg} onChange={setDecileLeg} />
-            </div>
-            <div className="pr-44">
+          <div className="section-card">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
               <SectionHeading
-                title="Average gain by income decile"
+                title={`Average gain by income decile (${fyLabel(decileYear)})`}
                 description={
                   impactMode === "abs"
                     ? "Mean annual gain across all households in each income decile."
                     : "Mean annual gain as a share of net income."
                 }
               />
+              <div className="flex flex-shrink-0 items-center gap-2">
+                <div className="flex overflow-hidden rounded-md border border-slate-200 bg-white text-xs font-medium">
+                  <button
+                    className={`px-3 py-1.5 ${
+                      impactMode === "abs"
+                        ? "bg-primary-600 text-white"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                    onClick={() => setImpactMode("abs")}
+                  >
+                    £
+                  </button>
+                  <button
+                    className={`px-3 py-1.5 ${
+                      impactMode === "pct"
+                        ? "bg-primary-600 text-white"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                    onClick={() => setImpactMode("pct")}
+                  >
+                    %
+                  </button>
+                </div>
+                <YearDropdown
+                  value={decileScenario}
+                  options={scenarioOptions}
+                  onChange={setDecileScenario}
+                />
+                <LegDropdown value={decileLeg} onChange={setDecileLeg} />
+              </div>
             </div>
             <div className="h-[380px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -686,15 +764,20 @@ export default function ReformTab({ data }) {
             <ChartLogo />
           </div>
 
-          <div className="section-card relative">
-            <div className="absolute right-4 top-4 z-10">
-              <LegDropdown value={wlLeg} onChange={setWlLeg} />
-            </div>
-            <div className="pr-44">
+          <div className="section-card">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
               <SectionHeading
-                title="Winners, no change, and losers"
+                title={`Winners, no change, and losers (${fyLabel(wlYear)})`}
                 description="Share of households that are better off, unaffected, or worse off in each income decile."
               />
+              <div className="flex flex-shrink-0 items-center gap-2">
+                <YearDropdown
+                  value={wlScenario}
+                  options={scenarioOptions}
+                  onChange={setWlScenario}
+                />
+                <LegDropdown value={wlLeg} onChange={setWlLeg} />
+              </div>
             </div>
             <div className="h-[380px] w-full">
               <ResponsiveContainer width="100%" height="100%">
