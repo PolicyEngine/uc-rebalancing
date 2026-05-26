@@ -1,20 +1,19 @@
 """Scenario configuration for the UC rebalancing impact.
 
 The Universal Credit Act 2025 packages two changes under a single
-``gov.dwp.universal_credit.rebalancing.active`` flag in PolicyEngine UK:
+``gov.dwp.universal_credit.rebalancing.active`` flag in policyengine.py:
 
 * ``rebalancing.standard_allowance_uplift`` — a cumulative above-inflation
-  uplift to the UC standard allowance from April 2026, reaching +4.8% by
-  2029/30.
+  uplift to the UC standard allowance from April 2026.
 * ``rebalancing.new_claimant_health_element`` — fixes the monthly UC
-  health element at £217.26 for new claimants from April 2026, the
-  loser leg of the bill.
+  health element for new claimants from April 2026, the loser leg of the
+  bill.
 
 This dashboard toggles the parent flag, so the reported impact is the
 net effect of both legs against a counterfactual where the entire
 rebalancing package is switched off. The internal POLICY_ID is kept as
-``uc_rebalancing`` for backwards compatibility with the
-dashboard payload schema.
+``uc_rebalancing`` for backwards compatibility with the dashboard payload
+schema.
 """
 
 from __future__ import annotations
@@ -29,7 +28,13 @@ UPLIFT_PARAMETER = (
 
 # Reform takes effect on the start of the UK financial year (1 April).
 REFORM_MONTH_DAY = "04-01"
-REFORM_END = "2100-12-31"
+
+
+def _resolve(node, dotted_path: str):
+    out = node
+    for part in dotted_path.split("."):
+        out = getattr(out, part)
+    return out
 
 
 def read_uplift_schedule(parameters) -> dict[int, float]:
@@ -38,9 +43,7 @@ def read_uplift_schedule(parameters) -> dict[int, float]:
     Only years where the cumulative uplift increases are kept; the permanent
     plateau after the reform reaches its final level is collapsed away.
     """
-    node = parameters
-    for part in UPLIFT_PARAMETER.split("."):
-        node = getattr(node, part)
+    node = _resolve(parameters, UPLIFT_PARAMETER)
     by_year: dict[int, float] = {}
     for v in node.values_list:
         year = int(v.instant_str[:4])
@@ -61,7 +64,19 @@ def reform_start_for_schedule(schedule: dict[int, float]) -> str:
     return f"{min(schedule)}-{REFORM_MONTH_DAY}"
 
 
-def policy_description(schedule: dict[int, float]) -> str:
+def reform_end_for_parameters(parameters) -> str:
+    """End instant for the reform window, derived from the parameter's own
+    values_list. Uses the latest defined instant of the ``rebalancing.active``
+    parameter so the reform dict covers the parameter's full domain.
+    """
+    node = _resolve(parameters, REBALANCING_PARAMETER)
+    return max(v.instant_str for v in node.values_list)
+
+
+def policy_description(
+    schedule: dict[int, float],
+    new_claimant_monthly: float,
+) -> str:
     final_year = max(schedule)
     final_pct = schedule[final_year] * 100
     return (
@@ -69,10 +84,10 @@ def policy_description(schedule: dict[int, float]) -> str:
         "two changes under a single rebalancing flag: an above-inflation uplift "
         f"to the standard allowance, reaching {final_pct:.1f}% cumulatively by "
         f"{final_year}/{(final_year + 1) % 100:02d}, and a fixed monthly health "
-        "element of £217.26 for new claimants. This dashboard toggles "
-        "gov.dwp.universal_credit.rebalancing.active, so the reported impact is "
-        "the net effect of both legs against a counterfactual where the "
-        "rebalancing package is switched off."
+        f"element of £{new_claimant_monthly:,.2f} for new claimants. This "
+        "dashboard toggles gov.dwp.universal_credit.rebalancing.active, so the "
+        "reported impact is the net effect of both legs against a counterfactual "
+        "where the rebalancing package is switched off."
     )
 
 
@@ -105,7 +120,7 @@ PUBLISHED_ESTIMATES = [
         "source": "DWP Impact Assessment",
         "leg": "sa",
         "metric": "Households gaining from SA uplift",
-        "value": "6,690,000",
+        "value": "6.69m",
         "value_count": 6_690_000,
         "year": "2029/30",
         "table": "Table 2",
@@ -152,7 +167,7 @@ PUBLISHED_ESTIMATES = [
     {
         "source": "DWP Impact Assessment",
         "leg": "he",
-        "metric": "New LCWRA monthly rate cut (£423.27 → £217.26)",
+        "metric": "New LCWRA monthly rate cut to new-claimant rate",
         "value": "-£2,472/yr",
         "year": "2026/27",
         "url": _DWP_IA_URL,

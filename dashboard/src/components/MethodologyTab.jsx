@@ -1,6 +1,29 @@
+function formatGbp(value) {
+  return `£${value.toLocaleString("en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export default function MethodologyTab({ data }) {
   const year = data.year;
   const fy = `${year}/${String((year + 1) % 100).padStart(2, "0")}`;
+  const policy = data.policies.uc_rebalancing;
+  const health = policy.health_element_monthly;
+  const schedule = policy.uplift_schedule;
+  const finalUpliftPct = (
+    Math.max(...Object.values(schedule).map(Number)) * 100
+  ).toFixed(1);
+  const newClaimantMonthly = formatGbp(health.new_claimant);
+  const baselinePrimary = formatGbp(health.baseline_primary_year);
+  const baselineBase = formatGbp(health.baseline_base_year);
+  const newClaimantAnnual = formatGbp(health.new_claimant * 12).replace(
+    /(\.\d{2})$/,
+    "",
+  );
+  const baselinePrimaryAnnual = formatGbp(
+    health.baseline_primary_year * 12,
+  ).replace(/(\.\d{2})$/, "");
   return (
     <div className="space-y-8">
       <div className="section-card">
@@ -11,13 +34,14 @@ export default function MethodologyTab({ data }) {
         <p className="mt-4 text-sm leading-7 text-slate-600">
           This dashboard uses{" "}
           <a
-            href="https://github.com/PolicyEngine/policyengine-uk"
+            href="https://github.com/PolicyEngine/policyengine.py"
             target="_blank"
             rel="noreferrer"
           >
-            PolicyEngine UK
-          </a>
-          , a static microsimulation model on the enhanced Family Resources
+            policyengine.py v{data.model_versions.policyengine}
+          </a>{" "}
+          (policyengine-uk v{data.model_versions.policyengine_uk}), a static
+          microsimulation model on the enhanced Family Resources
           Survey 2023/24, to quantify the household-level impact of the
           Universal Credit rebalancing package legislated by the{" "}
           <a
@@ -39,8 +63,8 @@ export default function MethodologyTab({ data }) {
           <li>
             <strong>Standard allowance uplift</strong> (
             <code>rebalancing.standard_allowance_uplift</code>) — a cumulative
-            above-CPI uplift that reaches 4.8% by {fy} and benefits roughly
-            5.9-6.7m UC households.
+            above-CPI uplift that reaches {finalUpliftPct}% by {fy} and
+            benefits roughly 5.9-6.7m UC households.
           </li>
           <li>
             <strong>New-claimant health element freeze</strong> (
@@ -51,10 +75,10 @@ export default function MethodologyTab({ data }) {
               target="_blank"
               rel="noreferrer"
             >
-              £217.26
+              {newClaimantMonthly}
             </a>{" "}
-            for LCWRA claims started after April 2026, against the £423.27
-            CPI-indexed amount that pre-2026 claimants keep.
+            for LCWRA claims started after April 2026, against the{" "}
+            {baselineBase} CPI-indexed amount that pre-2026 claimants keep.
           </li>
         </ul>
         <p className="mt-4 text-sm leading-7 text-slate-600">
@@ -70,7 +94,7 @@ export default function MethodologyTab({ data }) {
           The four simulations
         </h2>
         <p className="mt-4 text-sm leading-7 text-slate-600">
-          PolicyEngine UK wires the two legs in differently — the standard
+          policyengine.py wires the two legs in differently — the standard
           allowance uplift sits inside a parameter formula, while the health
           element freeze is baked into the dataset&apos;s{" "}
           <code>uc_LCWRA_element</code> input column for 2026-2029. Isolating
@@ -193,7 +217,7 @@ if rebalancing.active:
             </summary>
             <div className="border-t border-slate-100 px-4 py-3">
               <p className="text-sm leading-7 text-slate-600">
-                The £217.26 freeze is{" "}
+                The {newClaimantMonthly} freeze is{" "}
                 <strong>not exposed through a variable formula</strong>. The
                 bundled scenario{" "}
                 <code>universal_credit_july_2025_reform</code> instead
@@ -236,9 +260,14 @@ if rebalancing.active:
                 </li>
                 <li>
                   Post-2025 new claimants are written down to{" "}
-                  <code>£217.26 × 12 = £2,607/yr</code>, against an indexed
-                  counterfactual of roughly{" "}
-                  <code>£465.81 × 12 ≈ £5,590/yr</code> in 2029.
+                  <code>
+                    {newClaimantMonthly} × 12 = {newClaimantAnnual}/yr
+                  </code>
+                  , against an indexed counterfactual of roughly{" "}
+                  <code>
+                    {baselinePrimary} × 12 ≈ {baselinePrimaryAnnual}/yr
+                  </code>{" "}
+                  in {year}.
                 </li>
                 <li>
                   <code>
@@ -320,8 +349,8 @@ for year in (2026, 2027, 2028, 2029):
               tax-benefit system
             </li>
             <li>
-              Distributional impact by equivalised household income decile
-              (HBAI convention)
+              Distributional impact by household income decile (HBAI
+              convention)
             </li>
             <li>
               Static fiscal cost per leg, benchmarked against published DWP

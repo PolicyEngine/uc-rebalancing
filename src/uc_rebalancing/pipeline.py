@@ -1,4 +1,4 @@
-"""Orchestrate PolicyEngine UK runs for the UC uplift dashboard.
+"""Orchestrate policyengine.py UK runs for the UC rebalancing dashboard.
 
 Builds the JSON consumed by the dashboard. Two simulations are constructed
 once (counterfactual = rebalancing OFF, reform = current law); each financial
@@ -10,8 +10,23 @@ from __future__ import annotations
 
 import json
 import shutil
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 from typing import Any
+
+import numpy as np
+from policyengine.tax_benefit_models.uk import (
+    calculate_household,
+    managed_microsimulation,
+)
+
+# Single-household Simulation is reached through the country sub-package
+# because policyengine.py exposes ``calculate_household`` as the
+# situation-based entry point, and that helper builds a fresh Simulation per
+# call. The LCWRA per-claimant test must bypass the ``uc_LCWRA_element``
+# formula via ``set_input``, which requires holding a Simulation instance,
+# so it goes through the lower-level class.
+from policyengine_uk import Simulation as _UKSimulation
 
 from .analysis import (
     compute_decile_breakdown,
@@ -24,9 +39,9 @@ from .scenarios import (
     POLICY_TITLE,
     PUBLISHED_ESTIMATES,
     REBALANCING_PARAMETER,
-    REFORM_END,
     policy_description,
     read_uplift_schedule,
+    reform_end_for_parameters,
     reform_start_for_schedule,
     scenario_id,
     scenario_label,
@@ -39,28 +54,19 @@ DEFAULT_DASHBOARD_OUTPUT_PATH = Path(
 )
 
 
-def _policyengine_classes():
-    from policyengine_uk import Microsimulation, Scenario, Simulation
-
-    return Microsimulation, Scenario, Simulation
-
-
-REBALANCING_LCWRA_YEARS = (2026, 2027, 2028, 2029)
-
-
-def _strip_rebalanced_lcwra(sim) -> None:
+def _strip_rebalanced_lcwra(sim, years: tuple[int, ...]) -> None:
     """Drop the rebalanced ``uc_LCWRA_element`` values cached in the dataset.
 
-    The enhanced FRS 2023/24 dataset shipped by PolicyEngine UK already has
-    ``uc_LCWRA_element`` baked in for 2026-2029 with the bundled
-    ``universal_credit_july_2025_reform`` scenario applied (post-2025 new
-    claimants set to £217.26/month, pre-2025 claimants on a protected
-    indexed amount). We need a counterfactual where the rebalancing is
-    switched off entirely, so we clear those cached inputs and let the
+    The enhanced FRS 2023/24 dataset shipped by policyengine.py already has
+    ``uc_LCWRA_element`` baked in for the uplift schedule years with the
+    bundled ``universal_credit_july_2025_reform`` scenario applied (post-2025
+    new claimants set to the new-claimant rate, pre-2025 claimants on a
+    protected indexed amount). We need a counterfactual where the rebalancing
+    is switched off entirely, so we clear those cached inputs and let the
     parameter formula recompute the CPI-indexed amounts.
     """
     holder = sim.get_holder("uc_LCWRA_element")
-    for year in REBALANCING_LCWRA_YEARS:
+    for year in years:
         holder.delete_arrays(period=year)
 
 
@@ -74,11 +80,20 @@ def _financial_years(schedule: dict[int, float]) -> list[int]:
     return sorted(schedule)[1:]
 
 
-def build_simulations(schedule: dict[int, float], dataset: str = DEFAULT_DATASET):
+def _rebalancing_off_reform(reform_start: str, reform_end: str) -> dict:
+    """Reform dict that turns the rebalancing flag off for the policy window."""
+    return {REBALANCING_PARAMETER: {f"{reform_start}.{reform_end}": False}}
+
+
+def build_simulations(
+    schedule: dict[int, float],
+    reform_end: str,
+    dataset: str = DEFAULT_DATASET,
+):
     """Construct the four simulations needed for per-leg decomposition.
 
     The bundled rebalancing reform has two legs that are wired into
-    PolicyEngine UK in different ways: the standard allowance uplift is
+    policyengine.py UK in different ways: the standard allowance uplift is
     gated by a parameter formula, while the health element fix is baked
     into the ``uc_LCWRA_element`` input column of the enhanced FRS
     dataset. To decompose them we build four sims:
@@ -99,21 +114,25 @@ def build_simulations(schedule: dict[int, float], dataset: str = DEFAULT_DATASET
     diff(HE-only - counterfactual) at the household level. Small
     deviations may arise from UC tapers and benefit interactions.
     """
-    Microsimulation, Scenario, _Simulation = _policyengine_classes()
     reform_start = reform_start_for_schedule(schedule)
-    rebalancing_off = Scenario.from_reform(
-        {REBALANCING_PARAMETER: {f"{reform_start}.{REFORM_END}": False}}
+    lcwra_years = tuple(sorted(schedule))
+    rebalancing_off = _rebalancing_off_reform(reform_start, reform_end)
+
+    counterfactual = managed_microsimulation(
+        dataset=dataset, allow_unmanaged=True, reform=rebalancing_off
     )
+    _strip_rebalanced_lcwra(counterfactual, lcwra_years)
 
-    counterfactual = Microsimulation(dataset=dataset, scenario=rebalancing_off)
-    _strip_rebalanced_lcwra(counterfactual)
+    reform = managed_microsimulation(dataset=dataset, allow_unmanaged=True)
 
-    reform = Microsimulation(dataset=dataset)
+    reform_sa_only = managed_microsimulation(
+        dataset=dataset, allow_unmanaged=True
+    )
+    _strip_rebalanced_lcwra(reform_sa_only, lcwra_years)
 
-    reform_sa_only = Microsimulation(dataset=dataset)
-    _strip_rebalanced_lcwra(reform_sa_only)
-
-    reform_he_only = Microsimulation(dataset=dataset, scenario=rebalancing_off)
+    reform_he_only = managed_microsimulation(
+        dataset=dataset, allow_unmanaged=True, reform=rebalancing_off
+    )
 
     return (
         counterfactual,
@@ -124,49 +143,32 @@ def build_simulations(schedule: dict[int, float], dataset: str = DEFAULT_DATASET
     )
 
 
-def _household(base_year: int, target_year: int) -> dict[str, Any]:
-    return {
-        "your household": {
-            "members": ["you"],
-            "region": {str(base_year): "LONDON", str(target_year): "LONDON"},
-            "brma": {str(base_year): "MAIDSTONE", str(target_year): "MAIDSTONE"},
-            "local_authority": {
-                str(base_year): "MAIDSTONE",
-                str(target_year): "MAIDSTONE",
-            },
-        }
-    }
-
-
 def per_claimant_test(
     base_year: int,
     target_year: int,
-    counterfactual_scenario,
-    dataset: str = DEFAULT_DATASET,
+    counterfactual_reform: dict,
 ) -> dict[str, Any]:
     """Standard allowance leg: single 25+, no employment income, no LCWRA.
 
     Validates against the published £725 (DWP) total cash uplift and £247
     (IFS) above-inflation slice for the same archetype.
     """
-    _Microsimulation, _Scenario, Simulation = _policyengine_classes()
-    situation = {
-        "people": {
-            "you": {
-                "age": {str(base_year): 30, str(target_year): 30},
-                "employment_income": {str(base_year): 0, str(target_year): 0},
-            }
-        },
-        "benunits": {"your benunit": {"members": ["you"]}},
-        "households": _household(base_year, target_year),
-    }
-    sim_rf = Simulation(dataset=dataset, situation=situation)
-    sim_cf = Simulation(
-        dataset=dataset, scenario=counterfactual_scenario, situation=situation
+    person = {"age": 30, "employment_income": 0}
+    base = calculate_household(
+        people=[person], year=base_year, extra_variables=["universal_credit"]
     )
-    uc_base = float(sim_rf.calculate("universal_credit", base_year)[0])
-    uc_no_uplift = float(sim_cf.calculate("universal_credit", target_year)[0])
-    uc_with_uplift = float(sim_rf.calculate("universal_credit", target_year)[0])
+    rf = calculate_household(
+        people=[person], year=target_year, extra_variables=["universal_credit"]
+    )
+    cf = calculate_household(
+        people=[person],
+        year=target_year,
+        reform=counterfactual_reform,
+        extra_variables=["universal_credit"],
+    )
+    uc_base = float(base.person[0]["universal_credit"])
+    uc_with_uplift = float(rf.person[0]["universal_credit"])
+    uc_no_uplift = float(cf.person[0]["universal_credit"])
     return {
         "archetype": "single_25_plus_no_lcwra",
         "label": "Single 25+, no LCWRA",
@@ -183,25 +185,25 @@ def per_claimant_test(
 def per_claimant_test_lcwra(
     base_year: int,
     target_year: int,
-    counterfactual_scenario,
-    dataset: str = DEFAULT_DATASET,
+    counterfactual_reform: dict,
+    new_claimant_monthly: float,
 ) -> dict[str, Any]:
     """Health element leg: single 25+, new LCWRA claimant from April 2026.
 
-    The bundled rebalancing scenario applies the £217.26/month new-claimant
-    health element via a Microsimulation modifier that uses stochastic
-    cohort sampling. That modifier doesn't run on a single-person
-    Simulation, so we override ``uc_LCWRA_element`` directly using the
-    parameter value to capture the new-claimant amount cleanly.
+    The bundled rebalancing scenario applies the new-claimant health element
+    via a Microsimulation modifier that uses stochastic cohort sampling. That
+    modifier doesn't run on a single-household simulation, so we override
+    ``uc_LCWRA_element`` directly with ``set_input`` using the parameter
+    value to capture the new-claimant amount cleanly.
     """
-    import numpy as np
-
-    _Microsimulation, _Scenario, Simulation = _policyengine_classes()
     situation = {
         "people": {
             "you": {
                 "age": {str(base_year): 30, str(target_year): 30},
-                "employment_income": {str(base_year): 0, str(target_year): 0},
+                "employment_income": {
+                    str(base_year): 0,
+                    str(target_year): 0,
+                },
                 "uc_limited_capability_for_WRA": {
                     str(base_year): True,
                     str(target_year): True,
@@ -209,24 +211,22 @@ def per_claimant_test_lcwra(
             }
         },
         "benunits": {"your benunit": {"members": ["you"]}},
-        "households": _household(base_year, target_year),
+        "households": {"your household": {"members": ["you"]}},
     }
-    sim_rf = Simulation(dataset=dataset, situation=situation)
-    sim_cf = Simulation(
-        dataset=dataset, scenario=counterfactual_scenario, situation=situation
-    )
-    new_claimant_monthly = float(
-        sim_rf.tax_benefit_system.parameters(
-            str(target_year)
-        ).gov.dwp.universal_credit.rebalancing.new_claimant_health_element
-    )
-    new_claimant_annual = new_claimant_monthly * 12
+    sim_rf = _UKSimulation(situation=situation)
+    sim_cf = _UKSimulation(situation=situation, reform=counterfactual_reform)
     sim_rf.set_input(
-        "uc_LCWRA_element", target_year, np.array([new_claimant_annual])
+        "uc_LCWRA_element",
+        target_year,
+        np.array([new_claimant_monthly * 12]),
     )
     uc_base = float(sim_rf.calculate("universal_credit", base_year)[0])
-    uc_no_rebalancing = float(sim_cf.calculate("universal_credit", target_year)[0])
-    uc_with_rebalancing = float(sim_rf.calculate("universal_credit", target_year)[0])
+    uc_with_rebalancing = float(
+        sim_rf.calculate("universal_credit", target_year)[0]
+    )
+    uc_no_rebalancing = float(
+        sim_cf.calculate("universal_credit", target_year)[0]
+    )
     return {
         "archetype": "single_25_plus_new_lcwra_claimant",
         "label": "Single 25+ LCWRA, new claimant from April 2026",
@@ -301,17 +301,20 @@ def build_scenario(
 
 def build_results(dataset: str = DEFAULT_DATASET) -> dict[str, Any]:
     """Run the simulations and assemble the dashboard payload."""
-    Microsimulation, _Scenario, _Simulation = _policyengine_classes()
-    parameter_probe = Microsimulation(dataset=dataset)
-    schedule = read_uplift_schedule(parameter_probe.tax_benefit_system.parameters)
+    parameter_probe = managed_microsimulation(
+        dataset=dataset, allow_unmanaged=True
+    )
+    parameters = parameter_probe.tax_benefit_system.parameters
+    schedule = read_uplift_schedule(parameters)
+    reform_end = reform_end_for_parameters(parameters)
 
     (
         counterfactual,
         reform,
-        counterfactual_scenario,
+        counterfactual_reform,
         reform_sa_only,
         reform_he_only,
-    ) = build_simulations(schedule, dataset=dataset)
+    ) = build_simulations(schedule, reform_end, dataset=dataset)
 
     years = _financial_years(schedule)
     scenarios: dict[str, Any] = {}
@@ -331,11 +334,25 @@ def build_results(dataset: str = DEFAULT_DATASET) -> dict[str, Any]:
     primary = scenarios[primary_id]
     base_year = min(schedule) - 1
 
+    rebalancing_node = parameters.gov.dwp.universal_credit.rebalancing
+    new_claimant_monthly = float(
+        rebalancing_node.new_claimant_health_element(f"{primary_year}-04-01")
+    )
+    health_element_node = (
+        parameters.gov.dwp.universal_credit.elements.disabled.amount
+    )
+    health_element_monthly_base_year = float(
+        health_element_node(f"{base_year}-04-01")
+    )
+    health_element_monthly_primary_year = float(
+        health_element_node(f"{primary_year}-04-01")
+    )
+
     gainer = per_claimant_test(
-        base_year, primary_year, counterfactual_scenario, dataset=dataset
+        base_year, primary_year, counterfactual_reform
     )
     loser_lcwra = per_claimant_test_lcwra(
-        base_year, primary_year, counterfactual_scenario, dataset=dataset
+        base_year, primary_year, counterfactual_reform, new_claimant_monthly
     )
     reform_start = reform_start_for_schedule(schedule)
 
@@ -343,13 +360,28 @@ def build_results(dataset: str = DEFAULT_DATASET) -> dict[str, Any]:
         "year": primary_year,
         "base_year": base_year,
         "primary_scenario": primary_id,
+        "model_versions": {
+            "policyengine": _pkg_version("policyengine"),
+            "policyengine_uk": _pkg_version("policyengine-uk"),
+        },
         "policies": {
             POLICY_ID: {
                 "id": POLICY_ID,
                 "title": POLICY_TITLE,
-                "description": policy_description(schedule),
+                "description": policy_description(
+                    schedule, new_claimant_monthly
+                ),
                 "uplift_schedule": {str(y): v for y, v in schedule.items()},
-                "reform_window": {"start": reform_start, "end": REFORM_END},
+                "reform_window": {"start": reform_start, "end": reform_end},
+                "health_element_monthly": {
+                    "new_claimant": round(new_claimant_monthly, 2),
+                    "baseline_base_year": round(
+                        health_element_monthly_base_year, 2
+                    ),
+                    "baseline_primary_year": round(
+                        health_element_monthly_primary_year, 2
+                    ),
+                },
                 "scenarios": scenarios,
                 "primary_scenario": primary_id,
                 "primary_summary": primary["summary"],

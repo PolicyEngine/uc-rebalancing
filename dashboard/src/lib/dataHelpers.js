@@ -1,56 +1,50 @@
 /**
- * Data helper functions for the UC uplift dashboard.
+ * Data helper functions for the UC rebalancing dashboard.
+ *
+ * These helpers assume the dashboard JSON has been loaded — callers must
+ * guard the loading state above. No silent fallbacks: accessing a missing
+ * key surfaces as a real error rather than masquerading as empty data.
  */
 
 const POLICY_META = {
   uc_rebalancing: {
     title: "UC rebalancing analysis",
     shortTitle: "UC rebalancing",
-    description:
-      "From April 2026 the Universal Credit Act 2025 introduces two changes under a single rebalancing flag: a cumulative above-inflation uplift to the standard allowance, reaching 4.8% by 2029/30, and a fixed monthly health element of £217.26 for new claimants. This dashboard toggles gov.dwp.universal_credit.rebalancing.active, so the reported impact is the net effect of both legs against a counterfactual where the rebalancing package is switched off.",
     fiscalDirection: "cost",
   },
 };
 
-function firstPolicyId(data) {
-  if (!data?.policies) return null;
-  return Object.keys(data.policies)[0] || null;
-}
-
 export function getPrimaryPolicyId(data) {
-  return firstPolicyId(data);
+  const ids = Object.keys(data.policies);
+  return ids[0];
 }
 
 export function getPolicyOptions(data) {
-  if (!data?.policies) return [];
   return Object.entries(data.policies).map(([id, policy]) => ({
     id,
     ...POLICY_META[id],
-    title: POLICY_META[id]?.title || policy.title || id,
-    shortDescription: POLICY_META[id]?.description || policy.description || "",
-    description: policy.description || POLICY_META[id]?.description || "",
+    title: policy.title,
+    shortDescription: policy.description,
+    description: policy.description,
   }));
 }
 
 export function getScenarioOptions(data, policyId) {
-  if (!data?.policies?.[policyId]?.scenarios) return [];
   return Object.entries(data.policies[policyId].scenarios)
     .map(([id, scenario]) => ({
       id,
       label: scenario.label,
       year: scenario.year,
     }))
-    .sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
+    .sort((a, b) => a.year - b.year);
 }
 
 export function getScenarioData(data, policyId, scenarioId) {
-  return data?.policies?.[policyId]?.scenarios?.[scenarioId] || null;
+  return data.policies[policyId].scenarios[scenarioId];
 }
 
 export function deriveImpactSummary(data, policyId, scenarioId) {
-  const scenario = getScenarioData(data, policyId, scenarioId);
-  if (!scenario) return null;
-  return scenario.summary;
+  return getScenarioData(data, policyId, scenarioId).summary;
 }
 
 const DECILE_KEY_BY_LEG = {
@@ -65,58 +59,44 @@ const WINNERS_LOSERS_KEY_BY_LEG = {
   he: "winners_losers_he",
 };
 
-export function deriveDecileBreakdown(data, policyId, scenarioId, leg = "total") {
+export function deriveDecileBreakdown(data, policyId, scenarioId, leg) {
   const scenario = getScenarioData(data, policyId, scenarioId);
-  if (!scenario) return [];
-  const key = DECILE_KEY_BY_LEG[leg] || "by_decile";
-  return scenario[key] || scenario.by_decile || [];
+  return scenario[DECILE_KEY_BY_LEG[leg]];
 }
 
-export function deriveWinnersLosers(data, policyId, scenarioId, leg = "total") {
+export function deriveWinnersLosers(data, policyId, scenarioId, leg) {
   const scenario = getScenarioData(data, policyId, scenarioId);
-  if (!scenario) return null;
-  const key = WINNERS_LOSERS_KEY_BY_LEG[leg] || "winners_losers";
-  return scenario[key] || scenario.winners_losers || null;
+  return scenario[WINNERS_LOSERS_KEY_BY_LEG[leg]];
 }
 
 export function getPublishedComparison(data, policyId) {
-  return data?.policies?.[policyId]?.published_comparison || null;
+  return data.policies[policyId].published_comparison;
 }
 
 export function getPublishedByLeg(data, policyId, leg, metricNeedle) {
-  const estimates =
-    data?.policies?.[policyId]?.published_comparison?.estimates || [];
-  return (
-    estimates.find(
-      (e) =>
-        (leg ? e.leg === leg : true) &&
-        (metricNeedle
-          ? String(e.metric).toLowerCase().includes(metricNeedle.toLowerCase())
-          : true),
-    ) || null
+  const estimates = data.policies[policyId].published_comparison.estimates;
+  const needle = metricNeedle.toLowerCase();
+  return estimates.find(
+    (e) => e.leg === leg && String(e.metric).toLowerCase().includes(needle),
   );
 }
 
 export function getPerClaimantTest(data, policyId) {
-  return data?.policies?.[policyId]?.per_claimant_test || null;
+  return data.policies[policyId].per_claimant_test;
 }
 
 export function getPerClaimantTests(data, policyId) {
-  return data?.policies?.[policyId]?.per_claimant_tests || null;
+  return data.policies[policyId].per_claimant_tests;
 }
 
 export function getPolicyMeta(policyId) {
-  return POLICY_META[policyId] || { title: policyId, shortTitle: policyId };
+  return POLICY_META[policyId];
 }
 
 export function getPolicyDescription(data, policyId) {
-  return (
-    data?.policies?.[policyId]?.description ||
-    POLICY_META[policyId]?.description ||
-    ""
-  );
+  return data.policies[policyId].description;
 }
 
 export function getUpliftSchedule(data, policyId) {
-  return data?.policies?.[policyId]?.uplift_schedule || {};
+  return data.policies[policyId].uplift_schedule;
 }

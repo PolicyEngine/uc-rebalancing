@@ -33,7 +33,8 @@ def test_reform_start_uses_first_year_april_first():
 
 
 def test_policy_description_contains_first_and_last_year():
-    text = policy_description(SAMPLE_SCHEDULE)
+    text = policy_description(SAMPLE_SCHEDULE, new_claimant_monthly=217.26)
     assert "April 2026" in text
     assert "2029/30" in text
     assert "4.8%" in text
+    assert "£217.26" in text

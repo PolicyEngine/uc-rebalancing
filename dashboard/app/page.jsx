@@ -72,7 +72,7 @@ function Dashboard() {
       <main className="relative z-[1] mx-auto max-w-[1400px] px-6 py-10 md:px-8 md:py-12">
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.05rem] leading-relaxed text-slate-600">
-            This dashboard uses PolicyEngine UK to validate the fiscal and
+            This dashboard uses policyengine.py to validate the fiscal and
             distributional impact of the Universal Credit rebalancing
             package legislated by the{" "}
             <a

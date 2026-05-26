@@ -9,11 +9,18 @@ PolicyEngine imports so they can be unit tested with synthetic
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import microdf as mdf
 
 GAIN_THRESHOLD = 1.0
+
+
+def _round_or_none(value: float, ndigits: int) -> float | None:
+    if math.isnan(value):
+        return None
+    return round(float(value), ndigits)
 
 
 def compute_summary(
@@ -27,20 +34,16 @@ def compute_summary(
     n_gaining = float(gainers_mask.sum())
     n_losing = float(losers_mask.sum())
     total_cost = float(gain.sum())
-    avg_gain = (
-        float(gain[gainers_mask].mean()) if n_gaining > 0 else 0.0
-    )
+    avg_gain = float(gain[gainers_mask].mean())
     baseline_total = float(income_baseline.sum())
-    cost_pct = (
-        total_cost / baseline_total * 100 if baseline_total > 0 else 0.0
-    )
+    cost_pct = total_cost / baseline_total * 100
 
     return {
         "total_cost_bn": round(total_cost / 1e9, 3),
         "total_cost_mn": round(total_cost / 1e6, 1),
         "n_gaining": int(round(n_gaining)),
         "n_losing": int(round(n_losing)),
-        "avg_gain_per_hh": round(avg_gain, 0),
+        "avg_gain_per_hh": _round_or_none(avg_gain, 0),
         "baseline_net_income_bn": round(baseline_total / 1e9, 1),
         "cost_pct_of_income": round(cost_pct, 3),
     }
@@ -51,7 +54,11 @@ def compute_decile_breakdown(
     income_baseline: mdf.MicroSeries,
     deciles: mdf.MicroSeries,
 ) -> list[dict[str, Any]]:
-    """Mean gain and gain-as-share-of-income per income decile."""
+    """Mean gain and gain-as-share-of-income per income decile.
+
+    Deciles with no gainers emit ``None`` for the gainers-only fields so the
+    "no data" case is explicit rather than masquerading as a zero gain.
+    """
     mean_gain_all = gain.groupby(deciles).mean()
     pct_income_all = (
         gain.groupby(deciles).sum() / income_baseline.groupby(deciles).sum()
@@ -79,21 +86,22 @@ def compute_decile_breakdown(
     for d in sorted(d for d in mean_gain_all.index if 1 <= int(d) <= 10):
         w_pct = float(winners_pct.loc[d])
         l_pct = float(losers_pct.loc[d])
-        gainers_mean = (
-            float(mean_gain_gainers.loc[d]) if d in mean_gain_gainers.index else 0.0
-        )
-        gainers_pct = (
-            float(pct_income_gainers.loc[d])
-            if d in pct_income_gainers.index
-            else 0.0
-        )
+        has_gainers = d in mean_gain_gainers.index
         rows.append(
             {
                 "decile": int(d),
                 "mean_gain": round(float(mean_gain_all.loc[d]), 0),
                 "pct_of_income": round(float(pct_income_all.loc[d]), 3),
-                "mean_gain_gainers": round(gainers_mean, 0),
-                "pct_of_income_gainers": round(gainers_pct, 3),
+                "mean_gain_gainers": (
+                    round(float(mean_gain_gainers.loc[d]), 0)
+                    if has_gainers
+                    else None
+                ),
+                "pct_of_income_gainers": (
+                    round(float(pct_income_gainers.loc[d]), 3)
+                    if has_gainers
+                    else None
+                ),
                 "pct_winners": round(w_pct, 2),
                 "pct_losers": round(l_pct, 2),
                 "pct_unchanged": round(100.0 - w_pct - l_pct, 2),
@@ -108,7 +116,7 @@ def compute_inequality_poverty(
     in_poverty_cf: mdf.MicroSeries,
     in_poverty_rf: mdf.MicroSeries,
 ) -> dict[str, Any]:
-    """Person-weighted Gini and headline poverty rate, baseline vs reform.
+    """Gini and headline poverty rate, baseline vs reform.
 
     All four inputs must be person-level ``MicroSeries`` (use
     ``sim.calculate(var, period=year, map_to='person')``).
@@ -122,9 +130,9 @@ def compute_inequality_poverty(
     poor_rf = float(in_poverty_rf.sum())
 
     return {
-        "gini_baseline": round(gini_cf, 4),
-        "gini_reform": round(gini_rf, 4),
-        "gini_change_pp": round((gini_rf - gini_cf) * 100, 3),
+        "gini_baseline": round(gini_cf, 6),
+        "gini_reform": round(gini_rf, 6),
+        "gini_change_pp": round((gini_rf - gini_cf) * 100, 5),
         "poverty_rate_baseline": round(rate_cf, 3),
         "poverty_rate_reform": round(rate_rf, 3),
         "poverty_rate_change_pp": round(rate_rf - rate_cf, 3),

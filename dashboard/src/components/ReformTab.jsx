@@ -95,14 +95,14 @@ const LEG_OPTIONS = [
   {
     id: "he",
     label: "Health element",
-    description: "New-claimant £217.26/month freeze only — loser leg.",
+    description: "New-claimant health element freeze only — loser leg.",
   },
 ];
 
 function LegDropdown({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
-  const current = LEG_OPTIONS.find((o) => o.id === value) || LEG_OPTIONS[0];
+  const current = LEG_OPTIONS.find((o) => o.id === value);
 
   useEffect(() => {
     if (!open) return;
@@ -227,15 +227,11 @@ export default function ReformTab({ data }) {
     [data, policyId, selectedScenario],
   );
   const summarySa = useMemo(
-    () =>
-      data?.policies?.[policyId]?.scenarios?.[selectedScenario]?.summary_sa ||
-      null,
+    () => data.policies[policyId].scenarios[selectedScenario].summary_sa,
     [data, policyId, selectedScenario],
   );
   const summaryHe = useMemo(
-    () =>
-      data?.policies?.[policyId]?.scenarios?.[selectedScenario]?.summary_he ||
-      null,
+    () => data.policies[policyId].scenarios[selectedScenario].summary_he,
     [data, policyId, selectedScenario],
   );
   const decileData = useMemo(
@@ -283,18 +279,9 @@ export default function ReformTab({ data }) {
   const decilePctKey = "pct_of_income";
 
   const decileTicks = useMemo(() => {
-    if (!decileData.length) return [0];
-    const allValues = decileData.map((row) => row[decileGainKey] || 0);
+    const allValues = decileData.map((row) => row[decileGainKey]);
     return getNiceTicks([Math.min(0, ...allValues), Math.max(0, ...allValues)]);
   }, [decileData]);
-
-  if (!policyId) {
-    return (
-      <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-        No policy data available.
-      </p>
-    );
-  }
 
   return (
     <div className="space-y-8">
@@ -368,14 +355,9 @@ export default function ReformTab({ data }) {
       {/* Per-leg comparison vs DWP Impact Assessment — three boxes */}
       {summary && summarySa && summaryHe && (
         <div>
-          <div className="mb-3">
-            <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-              Per-leg comparison ({fyLabel(primaryYear)})
-            </div>
-            <h3 className="mt-1 text-lg font-semibold text-slate-900">
-              PolicyEngine UK vs the DWP Impact Assessment
-            </h3>
-          </div>
+          <h3 className="mb-3 text-lg font-semibold text-slate-900">
+            Per-leg comparison vs DWP IA ({fyLabel(primaryYear)})
+          </h3>
           <p className="mb-4 text-sm text-slate-500">
             The rebalancing flag bundles two legs that move in opposite
             directions. The DWP IA publishes them separately, so each box
@@ -383,7 +365,7 @@ export default function ReformTab({ data }) {
             figure. Positive values are gains to households (a cost to the
             Exchequer); negative values are losses (a saving).
           </p>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {/* SA leg */}
             <div className="metric-card">
               <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
@@ -475,14 +457,8 @@ export default function ReformTab({ data }) {
                 {formatCount(summary.n_losing)} lose
               </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Inequality + Gini cards */}
-      {summary && (inequality || summary) && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {inequality && (
+            {/* Poverty rate change */}
             <div className="metric-card">
               <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
                 Poverty rate change
@@ -491,51 +467,19 @@ export default function ReformTab({ data }) {
                 {inequality.poverty_rate_change_pp >= 0 ? "+" : ""}
                 {inequality.poverty_rate_change_pp.toFixed(2)} pp
               </div>
-              <div className="mt-2 text-sm text-slate-500">
+              <div className="mt-1 text-sm text-slate-500">
                 Net change in headline (BHC, absolute) poverty rate from the
-                rebalancing package
-                {typeof inequality.people_lifted_out_of_poverty === "number"
-                  ? `, about ${formatCount(
-                      Math.abs(inequality.people_lifted_out_of_poverty),
-                    )} ${
-                      inequality.people_lifted_out_of_poverty >= 0
-                        ? "fewer"
-                        : "more"
-                    } people in poverty.`
-                  : "."}
+                rebalancing package, about{" "}
+                {formatCount(
+                  Math.abs(inequality.people_lifted_out_of_poverty),
+                )}{" "}
+                {inequality.people_lifted_out_of_poverty >= 0
+                  ? "fewer"
+                  : "more"}{" "}
+                people in poverty.
               </div>
             </div>
-          )}
-          {inequality &&
-            typeof inequality.gini_baseline === "number" &&
-            typeof inequality.gini_reform === "number" &&
-            inequality.gini_baseline > 0 && (
-              <div className="metric-card">
-                <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-                  Gini change
-                </div>
-                <div className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-                  {(() => {
-                    const rel =
-                      ((inequality.gini_reform - inequality.gini_baseline) /
-                        inequality.gini_baseline) *
-                      100;
-                    return `${rel >= 0 ? "+" : ""}${rel.toFixed(2)}%`;
-                  })()}
-                </div>
-                <div className="mt-2 text-sm text-slate-500">
-                  Relative change in the person-weighted Gini coefficient on
-                  equivalised household net income:{" "}
-                  {inequality.gini_baseline.toFixed(4)} →{" "}
-                  {inequality.gini_reform.toFixed(4)}
-                  {inequality.gini_reform > inequality.gini_baseline
-                    ? ". Inequality rises slightly."
-                    : inequality.gini_reform < inequality.gini_baseline
-                      ? ". Inequality falls slightly."
-                      : "."}
-                </div>
-              </div>
-            )}
+          </div>
         </div>
       )}
 
