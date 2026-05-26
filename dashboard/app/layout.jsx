@@ -1,5 +1,4 @@
 import "./globals.css";
-import PolicyEngineHeader from "../src/components/PolicyEngineHeader";
 
 export const metadata = {
   title: "UC rebalancing analysis | PolicyEngine",
@@ -10,10 +9,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
-        <PolicyEngineHeader />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
