@@ -36,7 +36,9 @@ function Dashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const response = await fetch("/data/uc_rebalancing_results.json");
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_PATH}/data/uc_rebalancing_results.json`,
+        );
         if (!response.ok) {
           throw new Error("uc_rebalancing_results.json not found");
         }
