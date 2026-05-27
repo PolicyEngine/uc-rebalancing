@@ -866,19 +866,6 @@ export default function ReformTab({ data }) {
                       activeDot={{ r: 5 }}
                       name="SA uplift"
                     />
-                    {saIsCanonical && ifsClaimant && (
-                      <ReferenceLine
-                        y={Number(ifsClaimant.value.replace(/[^0-9-]/g, ""))}
-                        stroke={colors.gray[500]}
-                        strokeDasharray="4 4"
-                        label={{
-                          value: `IFS ${ifsClaimant.value.replace("/yr", "")}`,
-                          position: "insideTopRight",
-                          fill: colors.gray[500],
-                          fontSize: 11,
-                        }}
-                      />
-                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -886,23 +873,18 @@ export default function ReformTab({ data }) {
                 UC at {fyLabel(finalYear)} with the above-CPI uplift minus
                 UC with the rebalancing flag off, plotted against employment
                 income for the selected archetype. The LCWRA-claim setting
-                does not affect this card.
-                {saIsCanonical && (
-                  <>
-                    {" "}
-                    Dashed line shows the{" "}
-                    <a
-                      href={ifsClaimant.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline decoration-slate-300 hover:decoration-slate-500"
-                    >
-                      IFS
-                    </a>{" "}
-                    benchmark of {ifsClaimant.value.replace("/yr", "")} for
-                    this canonical archetype.
-                  </>
-                )}
+                does not affect this card. Benchmark:{" "}
+                <a
+                  href={ifsClaimant.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline decoration-slate-300 hover:decoration-slate-500"
+                >
+                  IFS
+                </a>{" "}
+                estimates {ifsClaimant.value.replace("/yr", "")} for a single
+                25+ claimant with no children and no employment income in{" "}
+                {fyLabel(finalYear)}.
               </div>
             </div>
 
@@ -961,21 +943,6 @@ export default function ReformTab({ data }) {
                       activeDot={{ r: 5 }}
                       name="UC change"
                     />
-                    {heIsCanonical && dwpHeRateCut && (
-                      <ReferenceLine
-                        y={Number(
-                          dwpHeRateCut.value.replace(/[^0-9-]/g, ""),
-                        )}
-                        stroke={colors.gray[500]}
-                        strokeDasharray="4 4"
-                        label={{
-                          value: `DWP ${dwpHeRateCut.value.replace("/yr", "")}`,
-                          position: "insideTopRight",
-                          fill: colors.gray[500],
-                          fontSize: 11,
-                        }}
-                      />
-                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -983,10 +950,10 @@ export default function ReformTab({ data }) {
                 {claimTiming === "new"
                   ? `New LCWRA claim from April ${reformStartYear} — health element fixed at ${newClaimantMonthly}/month against the CPI-indexed amount. The plotted figure includes the offsetting standard allowance uplift.`
                   : `Pre-${reformStartYear} LCWRA claim — protected on the CPI-indexed health element, so the only UC change shown is the standard allowance uplift.`}
-                {heIsCanonical && dwpHeRateCut && (
+                {dwpHeRateCut && (
                   <>
                     {" "}
-                    Dashed line shows the{" "}
+                    Benchmark:{" "}
                     <a
                       href={dwpHeRateCut.url}
                       target="_blank"
@@ -995,8 +962,11 @@ export default function ReformTab({ data }) {
                     >
                       DWP IA
                     </a>{" "}
-                    rate-cut headline of {dwpHeRateCut.value.replace("/yr", "")}
-                    .
+                    rate-cut headline is{" "}
+                    {dwpHeRateCut.value.replace("/yr", "")} for a single 25+
+                    new LCWRA claimant with no children and no employment
+                    income, comparing the £423.27/mo CPI-indexed rate to the
+                    £217.26/mo freeze.
                   </>
                 )}
               </div>
