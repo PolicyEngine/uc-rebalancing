@@ -84,18 +84,18 @@ function fyLabel(year) {
 const LEG_OPTIONS = [
   {
     id: "total",
-    label: "Both legs",
+    label: "Both changes",
     description: "Net effect of standard allowance uplift and new-claimant health element.",
   },
   {
     id: "sa",
     label: "Standard allowance",
-    description: "Above-inflation uplift only — gainer leg.",
+    description: "Above-inflation uplift only.",
   },
   {
     id: "he",
     label: "Health element",
-    description: "New-claimant health element freeze only — loser leg.",
+    description: "New-claimant health element freeze only.",
   },
 ];
 
@@ -413,6 +413,7 @@ export default function ReformTab({ data }) {
     Math.max(...Object.values(schedule).map(Number)) * 100
   ).toFixed(1);
   const health = data.policies[policyId].health_element_monthly;
+  const sa = data.policies[policyId].standard_allowance_monthly;
   const gbp = (v) =>
     `£${v.toLocaleString("en-GB", {
       minimumFractionDigits: 2,
@@ -462,20 +463,21 @@ export default function ReformTab({ data }) {
             >
               Act 2025
             </a>{" "}
-            bundles two opposing changes under one rebalancing flag, both
-            effective 1 April {reformStartYear}: an above-CPI uplift to the
-            standard allowance (winners) and a freeze of the monthly UC health
-            element for new LCWRA claims (losers). LCWRA stands for{" "}
+            bundles two changes under one rebalancing flag, both effective
+            1 April {reformStartYear}: an above-CPI uplift to the standard
+            allowance, and a freeze of the monthly UC health element for new
+            LCWRA claims. LCWRA stands for{" "}
             <em>limited capability for work and work-related activity</em> —
-            the UC health element paid to claimants assessed as unable to work
-            or prepare for work because of a health condition. The two legs
-            partly offset,
-            so the net impact is small but distributionally meaningful —
-            gainers cluster in the bottom half of the income distribution;
-            losers are concentrated among new LCWRA claimants in the
-            lower-middle deciles. The rest of this page quantifies the static
-            net impact in {fyLabel(finalYear)} alongside the published DWP
-            Impact Assessment and IFS estimates.
+            the UC health element paid to claimants assessed as unable to
+            work or prepare for work because of a health condition. The two
+            changes work in opposite directions for the Exchequer
+            (cost vs saving) and for affected households (uplift vs cut), and
+            partly offset at the package level. This page quantifies the
+            household-level impact across {fyLabel(reformStartYear)}–
+            {fyLabel(finalYear)}: the per-change fiscal effect, the
+            distribution by income decile, the share of winners and losers,
+            and a representative single-25+ claimant, alongside published
+            DWP Impact Assessment and IFS estimates.
           </>
         }
       />
@@ -510,20 +512,34 @@ export default function ReformTab({ data }) {
                     Standard allowance, above-CPI uplift
                   </div>
                   <div className="mt-0.5 text-xs text-slate-500">
-                    Winner leg — gain to all UC households.
+                    Applies to all UC households; the SA itself continues to
+                    rise with CPI each April on top of this above-CPI step.
                   </div>
                 </td>
-                <td className="py-3 pr-4 tabular-nums">0.0%</td>
+                <td className="py-3 pr-4">
+                  <span className="font-medium">CPI uprating only</span>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Single 25+: £{sa.base_year.single_25_plus.toFixed(2)}/mo;
+                    couple 25+: £{sa.base_year.couple_25_plus.toFixed(2)}/mo
+                    ({fyLabel(reformStartYear - 1)}).
+                  </div>
+                </td>
                 <td className="py-3 pr-4 tabular-nums">
                   <a
-                    href="https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf"
+                    href="https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf#page=3"
                     target="_blank"
                     rel="noreferrer"
                     className="underline decoration-slate-300 hover:decoration-slate-500"
                   >
-                    +{cumulativePct}% cumulative
+                    +{cumulativePct}% above CPI, cumulative
                   </a>
                   <div className="mt-1 text-xs text-slate-500">
+                    Single 25+: £{sa.primary_year.single_25_plus.toFixed(2)}/mo;
+                    couple 25+: £{sa.primary_year.couple_25_plus.toFixed(2)}/mo
+                    ({fyLabel(finalYear)}, CPI + uplift).
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Year on year:{" "}
                     {scheduleRows.map((r, i) => (
                       <span key={r.year} className="tabular-nums">
                         {fyLabel(r.year)} +{r.pct.toFixed(1)}%
@@ -540,23 +556,22 @@ export default function ReformTab({ data }) {
                     UC health element, new LCWRA claims (monthly)
                   </div>
                   <div className="mt-0.5 text-xs text-slate-500">
-                    Loser leg — affects only new claims after April{" "}
-                    {reformStartYear}; pre-2026 claims keep the CPI-indexed
-                    amount.
+                    Affects only new claims from April {reformStartYear};
+                    pre-2026 claims keep the CPI-indexed amount.
                   </div>
                 </td>
                 <td className="py-3 pr-4 tabular-nums">
                   <a
-                    href="https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf"
+                    href="https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf#page=1"
                     target="_blank"
                     rel="noreferrer"
                     className="underline decoration-slate-300 hover:decoration-slate-500"
                   >
-                    {baselineBaseYearMonthly}
+                    {baselineBaseYearMonthly}/mo
                   </a>
                   <div className="mt-1 text-xs text-slate-500">
-                    CPI-indexed; would reach {baselinePrimaryYearMonthly} by{" "}
-                    {fyLabel(finalYear)}
+                    CPI-indexed; would reach {baselinePrimaryYearMonthly}/mo
+                    by {fyLabel(finalYear)}.
                   </div>
                 </td>
                 <td className="py-3 pr-4 tabular-nums">
@@ -566,10 +581,10 @@ export default function ReformTab({ data }) {
                     rel="noreferrer"
                     className="underline decoration-slate-300 hover:decoration-slate-500"
                   >
-                    {newClaimantMonthly}
+                    {newClaimantMonthly}/mo
                   </a>
                   <div className="mt-1 text-xs text-slate-500">
-                    fixed; no CPI uprating
+                    Fixed in cash terms; no CPI uprating.
                   </div>
                 </td>
                 <td className="py-3 pr-0">1 April {reformStartYear}</td>
@@ -579,14 +594,14 @@ export default function ReformTab({ data }) {
         </div>
       </div>
 
-      {/* Per-leg comparison vs DWP Impact Assessment — three boxes */}
+      {/* Per-change comparison vs DWP Impact Assessment */}
       {summary && summarySa && summaryHe && (
         <div>
           <h3 className="mb-3 text-lg font-semibold text-slate-900">
-            Per-leg comparison vs DWP IA ({fyLabel(finalYear)})
+            Per-change comparison vs DWP IA ({fyLabel(finalYear)})
           </h3>
           <p className="mb-4 text-sm text-slate-500">
-            The rebalancing flag bundles two legs that move in opposite
+            The rebalancing flag bundles two changes that move in opposite
             directions. The DWP IA publishes them separately, so each box
             below compares our static estimate against the matching DWP
             figure. Positive values are gains to households (a cost to the
@@ -717,8 +732,8 @@ export default function ReformTab({ data }) {
             title={`Per-claimant impact (${fyLabel(finalYear)})`}
             description={
               <>
-                Pick the household profile to see how each leg of the package
-                affects a representative claimant. The IFS and DWP IA
+                Pick the household profile to see how each change in the
+                package affects a representative claimant. The IFS and DWP IA
                 benchmarks are shown when the inputs match their canonical
                 archetype (single, 25 or over, no children, no employment
                 income, new LCWRA claim).
@@ -762,7 +777,7 @@ export default function ReformTab({ data }) {
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div className="metric-card">
               <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-                Standard allowance leg — UC uplift
+                Standard allowance uplift — annual UC gain
               </div>
               <div className="mt-4">
                 <div className="text-[11px] uppercase tracking-wide text-slate-400">
@@ -790,15 +805,16 @@ export default function ReformTab({ data }) {
                 </div>
               </div>
               <div className="mt-3 text-xs leading-5 text-slate-500">
-                UC at {fyLabel(finalYear)} with the SA uplift minus UC with
-                rebalancing switched off — isolates the standard allowance leg.
-                The LCWRA-claim setting does not affect this card.
+                UC at {fyLabel(finalYear)} with the above-CPI uplift minus
+                UC with the rebalancing flag off — isolates the standard
+                allowance change. The LCWRA-claim setting does not affect
+                this card.
               </div>
             </div>
 
             <div className="metric-card">
               <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-                Health element leg — UC cut for LCWRA claims
+                Health element freeze — annual UC change for LCWRA claims
               </div>
               <div className="mt-4">
                 <div className="text-[11px] uppercase tracking-wide text-slate-400">

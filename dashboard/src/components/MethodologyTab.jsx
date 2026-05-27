@@ -7,7 +7,13 @@ function formatGbp(value) {
 
 export default function MethodologyTab({ data }) {
   const year = data.year;
-  const fy = `${year}/${String((year + 1) % 100).padStart(2, "0")}`;
+  const fy = `${year}-${String((year + 1) % 100).padStart(2, "0")}`;
+  const scenarioYears = Object.values(
+    data.policies.uc_rebalancing.scenarios,
+  ).map((s) => s.year);
+  const firstYear = Math.min(...scenarioYears);
+  const firstFy = `${firstYear}-${String((firstYear + 1) % 100).padStart(2, "0")}`;
+  const yearRange = `${firstFy} to ${fy}`;
   const policy = data.policies.uc_rebalancing;
   const health = policy.health_element_monthly;
   const schedule = policy.uplift_schedule;
@@ -51,9 +57,9 @@ export default function MethodologyTab({ data }) {
           >
             Universal Credit Act 2025
           </a>
-          . The reported impact is the change in household_net_income in {fy},
-          with FRS sample weights applied so all aggregates are
-          population-weighted.
+          . The reported impact is the change in household_net_income across
+          each financial year from {yearRange}, with FRS sample weights
+          applied so all aggregates are population-weighted.
         </p>
         <p className="mt-4 text-sm leading-7 text-slate-600">
           The Act bundles two changes under a single parameter,{" "}
@@ -233,13 +239,14 @@ if rebalancing.active:
                 <li>
                   For each year a target share of the LCWRA stock is flagged
                   &quot;post-April-2026 new claimant&quot;: 11% in 2026, 13%
-                  in 2027, 16% in 2028, 22% in 2029. The shares come from{" "}
+                  in 2027, 16% in 2028, 22% in 2029. The shares come from
+                  WPI Economics modelling for{" "}
                   <a
-                    href="https://www.trusselltrust.org/news-and-blog/latest-stories/wpi-economics-uc-rebalancing/"
+                    href="https://www.trussell.org.uk/news-and-research/news/welfare-reform-bill-risks-forcing-disabled-people-to-food-banks"
                     target="_blank"
                     rel="noreferrer"
                   >
-                    WPI Economics for the Trussell Trust
+                    Trussell
                   </a>{" "}
                   on PIP admin data.
                 </li>
@@ -341,8 +348,9 @@ for year in (2026, 2027, 2028, 2029):
           </h3>
           <ul className="mt-4 list-disc pl-5 text-sm leading-7 text-slate-600 space-y-1">
             <li>
-              Net household impact of the rebalancing package in {fy},
-              decomposable into the standard allowance and health element legs
+              Net household impact of the rebalancing package across each
+              financial year from {yearRange}, decomposable into the standard
+              allowance and health element changes
             </li>
             <li>
               Pass-through to household net income via the full UK

@@ -82,8 +82,17 @@ def _financial_years(schedule: dict[int, float]) -> list[int]:
 
 
 def _rebalancing_off_reform(reform_start: str, reform_end: str) -> dict:
-    """Reform dict that turns the rebalancing flag off for the policy window."""
-    return {REBALANCING_PARAMETER: {f"{reform_start}.{reform_end}": False}}
+    """Reform dict that turns the rebalancing flag off for the policy window.
+
+    PE-UK reads parameters at the start of the requested period (1 January
+    for a year period). The reform takes effect 1 April but if we anchor the
+    override at 1 April, calling ``calculate(..., period=Y)`` for the reform
+    start year reads at 1 January, before the override fires, and the
+    counterfactual collapses onto the reform. Anchor at 1 January of the
+    same year so every year-period evaluation captures the override.
+    """
+    override_start = f"{reform_start[:4]}-01-01"
+    return {REBALANCING_PARAMETER: {f"{override_start}.{reform_end}": False}}
 
 
 def build_simulations(
@@ -644,6 +653,19 @@ def build_results(dataset: str = DEFAULT_DATASET) -> dict[str, Any]:
     health_element_monthly_primary_year = float(
         health_element_node(f"{primary_year}-04-01")
     )
+    sa_node = parameters.gov.dwp.universal_credit.standard_allowance.amount
+    standard_allowance_monthly_base_year = {
+        "single_25_plus": round(float(sa_node.SINGLE_OLD(f"{base_year}-04-01")), 2),
+        "couple_25_plus": round(float(sa_node.COUPLE_OLD(f"{base_year}-04-01")), 2),
+        "single_under_25": round(float(sa_node.SINGLE_YOUNG(f"{base_year}-04-01")), 2),
+        "couple_under_25": round(float(sa_node.COUPLE_YOUNG(f"{base_year}-04-01")), 2),
+    }
+    standard_allowance_monthly_primary_year = {
+        "single_25_plus": round(float(sa_node.SINGLE_OLD(f"{primary_year}-04-01")), 2),
+        "couple_25_plus": round(float(sa_node.COUPLE_OLD(f"{primary_year}-04-01")), 2),
+        "single_under_25": round(float(sa_node.SINGLE_YOUNG(f"{primary_year}-04-01")), 2),
+        "couple_under_25": round(float(sa_node.COUPLE_YOUNG(f"{primary_year}-04-01")), 2),
+    }
 
     gainer = per_claimant_test(
         base_year, primary_year, counterfactual_reform
@@ -689,6 +711,10 @@ def build_results(dataset: str = DEFAULT_DATASET) -> dict[str, Any]:
                     "baseline_primary_year": round(
                         health_element_monthly_primary_year, 2
                     ),
+                },
+                "standard_allowance_monthly": {
+                    "base_year": standard_allowance_monthly_base_year,
+                    "primary_year": standard_allowance_monthly_primary_year,
                 },
                 "scenarios": scenarios,
                 "primary_scenario": primary_id,
