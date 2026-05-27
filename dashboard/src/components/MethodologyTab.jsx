@@ -88,9 +88,9 @@ export default function MethodologyTab({ data }) {
           </li>
         </ul>
         <p className="mt-4 text-sm leading-7 text-slate-600">
-          The two legs move together but pull in opposite directions, so the
-          dashboard runs four simulations and reports the total package as
-          well as each leg in isolation.
+          The two changes move together but pull in opposite directions, so
+          the dashboard runs four simulations and reports the total package
+          as well as each change in isolation.
         </p>
       </div>
 
@@ -100,13 +100,13 @@ export default function MethodologyTab({ data }) {
           The four simulations
         </h2>
         <p className="mt-4 text-sm leading-7 text-slate-600">
-          policyengine.py wires the two legs in differently — the standard
+          policyengine.py wires the two changes in differently — the standard
           allowance uplift sits inside a parameter formula, while the health
           element freeze is baked into the dataset&apos;s{" "}
-          <code>uc_LCWRA_element</code> input column for 2026-2029. Isolating
-          one leg therefore needs both a parameter override and a dataset
+          <code>uc_LCWRA_element</code> input column for {yearRange}. Isolating
+          one change therefore needs both a parameter override and a dataset
           edit. We build four sims so the dashboard can show the package and
-          each leg cleanly:
+          each change cleanly:
         </p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
@@ -139,29 +139,36 @@ export default function MethodologyTab({ data }) {
                 <td className="py-2 pr-4 font-semibold">SA-only</td>
                 <td className="py-2 pr-4">True</td>
                 <td className="py-2 pr-4">Cleared</td>
-                <td className="py-2 pr-0">Standard allowance leg only</td>
+                <td className="py-2 pr-0">Standard allowance change only</td>
               </tr>
               <tr>
                 <td className="py-2 pr-4 font-semibold">HE-only</td>
                 <td className="py-2 pr-4">False</td>
                 <td className="py-2 pr-4">Kept</td>
-                <td className="py-2 pr-0">Health element leg only</td>
+                <td className="py-2 pr-0">Health element change only</td>
               </tr>
             </tbody>
           </table>
         </div>
         <p className="mt-4 text-sm leading-7 text-slate-600">
-          The two legs operate on different UC components, so at the household
-          level{" "}
+          The two changes operate on different UC components, so at the
+          household level{" "}
           <code>diff(reform − counterfactual) ≈ diff(SA-only) + diff(HE-only)</code>
           . Small deviations come from UC tapers and benefit interactions.
+        </p>
+        <p className="mt-4 text-sm leading-7 text-slate-600">
+          The counterfactual override is anchored at 1 January of the reform
+          start year (not 1 April), because PE-UK reads parameters at the
+          start of the requested period — a year-period call for 2026 reads
+          at 1 January, so anchoring the override later would let the
+          counterfactual collapse onto the reform for that first year.
         </p>
       </div>
 
       <div className="section-card">
         <div className="eyebrow text-slate-500">Mechanism</div>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-          How each leg is wired in PolicyEngine UK
+          How each change is wired in policyengine.py
         </h2>
 
         <div className="mt-6 space-y-3">
@@ -317,16 +324,16 @@ if rebalancing.active:
             <div className="border-t border-slate-100 px-4 py-3">
               <p className="text-sm leading-7 text-slate-600">
                 The shipped enhanced FRS dataset already stores{" "}
-                <code>uc_LCWRA_element</code> for 2026-2029 with the
-                modifier&apos;s output baked in. Setting{" "}
+                <code>uc_LCWRA_element</code> for the uplift schedule years
+                with the modifier&apos;s output baked in. Setting{" "}
                 <code>rebalancing.active = False</code> alone does not undo
                 this, because no formula reads that flag for the LCWRA
                 element. So for the counterfactual and SA-only sims we
-                explicitly clear the cache:
+                explicitly clear the cache for every year in the schedule:
               </p>
               <pre className="mt-2 overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs leading-5 text-slate-100">
 {`holder = sim.get_holder("uc_LCWRA_element")
-for year in (2026, 2027, 2028, 2029):
+for year in sorted(uplift_schedule.keys()):
     holder.delete_arrays(period=year)`}
               </pre>
               <p className="mt-2 text-sm leading-7 text-slate-600">
@@ -361,13 +368,14 @@ for year in (2026, 2027, 2028, 2029):
               convention)
             </li>
             <li>
-              Static fiscal cost per leg, benchmarked against published DWP
-              IA tables
+              Static fiscal cost per change, benchmarked against published
+              DWP IA tables
             </li>
             <li>
-              Per-claimant validation cards for both gainer (single 25+ no
-              LCWRA) and loser (single 25+ new LCWRA from April 2026)
-              archetypes
+              Per-claimant impact across a grid of representative archetypes
+              (single / couple × 0/1/2/3/4+ children × under-25 / 25+ × £0–
+              £100k earnings × new / pre-2026 LCWRA claim), with canonical
+              IFS and DWP IA benchmarks shown in context
             </li>
           </ul>
         </div>

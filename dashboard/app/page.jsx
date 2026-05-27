@@ -74,7 +74,7 @@ function Dashboard() {
       <main className="relative z-[1] mx-auto max-w-[1400px] px-6 py-10 md:px-8 md:py-12">
         <div className="animate-[fadeIn_0.4s_ease-out]">
           <p className="mb-3 text-[1.05rem] leading-relaxed text-slate-600">
-            This dashboard uses policyengine.py to validate the fiscal and
+            This dashboard uses policyengine.py to quantify the fiscal and
             distributional impact of the Universal Credit rebalancing
             package legislated by the{" "}
             <a
@@ -83,27 +83,22 @@ function Dashboard() {
               rel="noreferrer"
             >
               Universal Credit Act 2025
-            </a>
-            : an above-inflation{" "}
-            <a
-              href="https://www.msn.com/en-gb/money/other/dwp-confirms-first-time-ever-change-to-universal-credit-affecting-4-million-claimants/ar-AA22p7T8?ocid=finance-verthp-feeds"
-              target="_blank"
-              rel="noreferrer"
-            >
-              uplift
             </a>{" "}
-            to the standard allowance and a{" "}
+            — an above-CPI uplift to the standard allowance and a freeze of
+            the monthly{" "}
             <a
               href="https://bills.parliament.uk/publications/62123/documents/6889#page=16"
               target="_blank"
               rel="noreferrer"
             >
-              fixed
+              LCWRA
             </a>{" "}
-            monthly health element for new claimants from April 2026. The{" "}
-            <strong>Impact</strong> tab
-            shows aggregate cost, household-level gain, and distribution by
-            income decile. The <strong>Methodology</strong> tab explains the
+            element for new claims from April 2026 — across 2026-27 to
+            2029-30. The <strong>Impact</strong> tab shows aggregate cost,
+            per-decile distribution, winners and losers, and the
+            per-claimant impact for representative archetypes, all
+            benchmarked against the published DWP Impact Assessment and IFS
+            estimates. The <strong>Methodology</strong> tab explains the
             model, the counterfactual, and what the static analysis omits.
           </p>
         </div>
