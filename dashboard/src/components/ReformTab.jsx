@@ -7,6 +7,9 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  Line,
+  LineChart,
+  ReferenceDot,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -353,6 +356,53 @@ export default function ReformTab({ data }) {
       ? isCanonical(archetype, grid.canonical_archetype)
       : false;
   const heIsCanonical = saIsCanonical && claimTiming === "new";
+
+  const saSeries = useMemo(() => {
+    if (!grid || !archetype) return [];
+    const q = {
+      family_type: archetype.family_type,
+      num_children: archetype.num_children,
+      age_band: archetype.age_band,
+    };
+    return grid.input_options.employment_income
+      .map((opt) => {
+        const row = findGridRow(grid.sa, {
+          ...q,
+          employment_income: opt.value,
+        });
+        return row
+          ? {
+              employment_income: opt.value,
+              value: row.above_inflation_uplift,
+            }
+          : null;
+      })
+      .filter(Boolean);
+  }, [grid, archetype]);
+
+  const heSeries = useMemo(() => {
+    if (!grid || !archetype) return [];
+    const q = {
+      family_type: archetype.family_type,
+      num_children: archetype.num_children,
+      age_band: archetype.age_band,
+      claim_timing: claimTiming,
+    };
+    return grid.input_options.employment_income
+      .map((opt) => {
+        const row = findGridRow(grid.he, {
+          ...q,
+          employment_income: opt.value,
+        });
+        return row
+          ? {
+              employment_income: opt.value,
+              value: row.rebalancing_impact,
+            }
+          : null;
+      })
+      .filter(Boolean);
+  }, [grid, archetype, claimTiming]);
 
   const [decileScenario, setDecileScenario] = useState(primaryScenarioId);
   const [wlScenario, setWlScenario] = useState(primaryScenarioId);
@@ -740,7 +790,7 @@ export default function ReformTab({ data }) {
               </>
             }
           />
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <ArchetypeSelect
               label="Family"
               value={archetype.family_type}
@@ -752,14 +802,6 @@ export default function ReformTab({ data }) {
               value={archetype.num_children}
               options={grid.input_options.num_children}
               onChange={(v) => setArchetype({ ...archetype, num_children: v })}
-            />
-            <ArchetypeSelect
-              label="Income"
-              value={archetype.employment_income}
-              options={grid.input_options.employment_income}
-              onChange={(v) =>
-                setArchetype({ ...archetype, employment_income: v })
-              }
             />
             <ArchetypeSelect
               label="Age"
@@ -777,74 +819,186 @@ export default function ReformTab({ data }) {
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div className="metric-card">
               <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-                Standard allowance uplift — annual UC gain
+                Standard allowance uplift — annual UC gain vs earnings
               </div>
-              <div className="mt-4">
-                <div className="text-[11px] uppercase tracking-wide text-slate-400">
-                  Above-inflation slice ({fyLabel(finalYear)} only)
-                </div>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tracking-tight text-slate-900">
-                    {saRow
-                      ? `${formatCurrency(saRow.above_inflation_uplift)}/yr`
-                      : "—"}
-                  </span>
-                  {saIsCanonical && (
-                    <span className="text-xs text-slate-400">
-                      vs (
-                      <a
-                        href={ifsClaimant.url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {ifsClaimant.source}
-                      </a>
-                      ): {ifsClaimant.value.replace("/yr", "")}
-                    </span>
-                  )}
-                </div>
+              <div className="mt-1 text-[11px] uppercase tracking-wide text-slate-400">
+                Above-inflation slice ({fyLabel(finalYear)} only)
               </div>
-              <div className="mt-3 text-xs leading-5 text-slate-500">
+              <div className="mt-3 h-[260px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={saSeries}
+                    margin={{ top: 10, right: 16, left: 4, bottom: 8 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke={PALETTE.grid} />
+                    <XAxis
+                      dataKey="employment_income"
+                      type="number"
+                      domain={[0, 100000]}
+                      ticks={[0, 20000, 40000, 60000, 80000, 100000]}
+                      tickFormatter={(v) => `£${v / 1000}k`}
+                      tick={AXIS_STYLE}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={AXIS_STYLE}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v) => formatCurrency(v)}
+                    />
+                    <ReferenceLine y={0} stroke={colors.gray[400]} strokeWidth={1} />
+                    <Tooltip
+                      content={
+                        <CustomTooltip
+                          formatter={(v) => `${formatCurrency(v)}/yr`}
+                          labelFormatter={(v) =>
+                            `Earnings £${Number(v).toLocaleString("en-GB")}`
+                          }
+                        />
+                      }
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke={PALETTE.gain}
+                      strokeWidth={2.5}
+                      dot={{ r: 3, fill: PALETTE.gain }}
+                      activeDot={{ r: 5 }}
+                      name="SA uplift"
+                    />
+                    {saIsCanonical && ifsClaimant && (
+                      <ReferenceLine
+                        y={Number(ifsClaimant.value.replace(/[^0-9-]/g, ""))}
+                        stroke={colors.gray[500]}
+                        strokeDasharray="4 4"
+                        label={{
+                          value: `IFS ${ifsClaimant.value.replace("/yr", "")}`,
+                          position: "insideTopRight",
+                          fill: colors.gray[500],
+                          fontSize: 11,
+                        }}
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-2 text-xs leading-5 text-slate-500">
                 UC at {fyLabel(finalYear)} with the above-CPI uplift minus
-                UC with the rebalancing flag off — isolates the standard
-                allowance change. The LCWRA-claim setting does not affect
-                this card.
+                UC with the rebalancing flag off, plotted against employment
+                income for the selected archetype. The LCWRA-claim setting
+                does not affect this card.
+                {saIsCanonical && (
+                  <>
+                    {" "}
+                    Dashed line shows the{" "}
+                    <a
+                      href={ifsClaimant.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline decoration-slate-300 hover:decoration-slate-500"
+                    >
+                      IFS
+                    </a>{" "}
+                    benchmark of {ifsClaimant.value.replace("/yr", "")} for
+                    this canonical archetype.
+                  </>
+                )}
               </div>
             </div>
 
             <div className="metric-card">
               <div className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-                Health element freeze — annual UC change for LCWRA claims
+                Health element freeze — annual UC change vs earnings
               </div>
-              <div className="mt-4">
-                <div className="text-[11px] uppercase tracking-wide text-slate-400">
-                  Annual UC change ({fyLabel(finalYear)})
-                </div>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tracking-tight text-slate-900">
-                    {heRow
-                      ? `${formatCurrency(heRow.rebalancing_impact)}/yr`
-                      : "—"}
-                  </span>
-                  {heIsCanonical && dwpHeRateCut && (
-                    <span className="text-xs text-slate-400">
-                      vs (
-                      <a
-                        href={dwpHeRateCut.url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {dwpHeRateCut.source.split(" ")[0]}
-                      </a>
-                      ): {dwpHeRateCut.value.replace("/yr", "")}
-                    </span>
-                  )}
-                </div>
+              <div className="mt-1 text-[11px] uppercase tracking-wide text-slate-400">
+                LCWRA claim impact ({fyLabel(finalYear)})
               </div>
-              <div className="mt-3 text-xs leading-5 text-slate-500">
+              <div className="mt-3 h-[260px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={heSeries}
+                    margin={{ top: 10, right: 16, left: 4, bottom: 8 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke={PALETTE.grid} />
+                    <XAxis
+                      dataKey="employment_income"
+                      type="number"
+                      domain={[0, 100000]}
+                      ticks={[0, 20000, 40000, 60000, 80000, 100000]}
+                      tickFormatter={(v) => `£${v / 1000}k`}
+                      tick={AXIS_STYLE}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={AXIS_STYLE}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v) => formatCurrency(v)}
+                    />
+                    <ReferenceLine y={0} stroke={colors.gray[400]} strokeWidth={1} />
+                    <Tooltip
+                      content={
+                        <CustomTooltip
+                          formatter={(v) => `${formatCurrency(v)}/yr`}
+                          labelFormatter={(v) =>
+                            `Earnings £${Number(v).toLocaleString("en-GB")}`
+                          }
+                        />
+                      }
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke={
+                        claimTiming === "new" ? PALETTE.loss : PALETTE.gain
+                      }
+                      strokeWidth={2.5}
+                      dot={{
+                        r: 3,
+                        fill:
+                          claimTiming === "new" ? PALETTE.loss : PALETTE.gain,
+                      }}
+                      activeDot={{ r: 5 }}
+                      name="UC change"
+                    />
+                    {heIsCanonical && dwpHeRateCut && (
+                      <ReferenceLine
+                        y={Number(
+                          dwpHeRateCut.value.replace(/[^0-9-]/g, ""),
+                        )}
+                        stroke={colors.gray[500]}
+                        strokeDasharray="4 4"
+                        label={{
+                          value: `DWP ${dwpHeRateCut.value.replace("/yr", "")}`,
+                          position: "insideTopRight",
+                          fill: colors.gray[500],
+                          fontSize: 11,
+                        }}
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-2 text-xs leading-5 text-slate-500">
                 {claimTiming === "new"
-                  ? `New LCWRA claim from April ${reformStartYear} — health element fixed at ${newClaimantMonthly}/month against the CPI-indexed amount; the figure includes the offsetting standard allowance uplift.`
-                  : `Pre-${reformStartYear} LCWRA claim — protected on the CPI-indexed health element, so the only UC change is the standard allowance uplift.`}
+                  ? `New LCWRA claim from April ${reformStartYear} — health element fixed at ${newClaimantMonthly}/month against the CPI-indexed amount. The plotted figure includes the offsetting standard allowance uplift.`
+                  : `Pre-${reformStartYear} LCWRA claim — protected on the CPI-indexed health element, so the only UC change shown is the standard allowance uplift.`}
+                {heIsCanonical && dwpHeRateCut && (
+                  <>
+                    {" "}
+                    Dashed line shows the{" "}
+                    <a
+                      href={dwpHeRateCut.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline decoration-slate-300 hover:decoration-slate-500"
+                    >
+                      DWP IA
+                    </a>{" "}
+                    rate-cut headline of {dwpHeRateCut.value.replace("/yr", "")}
+                    .
+                  </>
+                )}
               </div>
             </div>
           </div>

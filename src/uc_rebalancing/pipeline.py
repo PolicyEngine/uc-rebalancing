@@ -195,7 +195,7 @@ def per_claimant_test(
 GRID_FAMILY_TYPES = ("single", "couple")
 # Children counts modelled: 0, 1, 2, 3, and 4 (which the UI labels as "More than 3").
 GRID_NUM_CHILDREN = (0, 1, 2, 3, 4)
-GRID_EMPLOYMENT_INCOME = tuple(range(0, 100_001, 20_000))
+GRID_EMPLOYMENT_INCOME = tuple(range(0, 100_001, 10_000))
 GRID_AGE_BANDS = ("25_plus", "under_25")
 GRID_CLAIM_TIMING = ("new", "pre_2026")
 
