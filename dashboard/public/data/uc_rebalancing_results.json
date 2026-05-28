@@ -9465,7 +9465,105 @@
             "url": "https://ifs.org.uk/articles/aprils-universal-credit-changes-mean-giveaways-now-takeaways-later"
           }
         ]
-      }
+      },
+      "parameter_path_by_year": [
+        {
+          "year": 2026,
+          "label": "2026-27 (2.3%)",
+          "uplift_pct": 0.023,
+          "cpi_ratio_from_base": 1.034,
+          "standard_allowance_monthly": {
+            "cpi_only": {
+              "single_25_plus": 413.74,
+              "couple_25_plus": 649.46,
+              "single_under_25": 327.76,
+              "couple_under_25": 514.47
+            },
+            "with_reform": {
+              "single_25_plus": 424.9,
+              "couple_25_plus": 666.97,
+              "single_under_25": 338.58,
+              "couple_under_25": 528.34
+            }
+          },
+          "health_element_monthly": {
+            "cpi_only": 437.66,
+            "new_claimant_with_reform": 217.26
+          }
+        },
+        {
+          "year": 2027,
+          "label": "2027-28 (3.1%)",
+          "uplift_pct": 0.031,
+          "cpi_ratio_from_base": 1.0578,
+          "standard_allowance_monthly": {
+            "cpi_only": {
+              "single_25_plus": 423.26,
+              "couple_25_plus": 664.39,
+              "single_under_25": 335.3,
+              "couple_under_25": 526.3
+            },
+            "with_reform": {
+              "single_25_plus": 434.67,
+              "couple_25_plus": 682.31,
+              "single_under_25": 346.37,
+              "couple_under_25": 540.49
+            }
+          },
+          "health_element_monthly": {
+            "cpi_only": 447.73,
+            "new_claimant_with_reform": 217.26
+          }
+        },
+        {
+          "year": 2028,
+          "label": "2028-29 (4.0%)",
+          "uplift_pct": 0.04,
+          "cpi_ratio_from_base": 1.0789,
+          "standard_allowance_monthly": {
+            "cpi_only": {
+              "single_25_plus": 431.72,
+              "couple_25_plus": 677.68,
+              "single_under_25": 342.0,
+              "couple_under_25": 536.82
+            },
+            "with_reform": {
+              "single_25_plus": 443.36,
+              "couple_25_plus": 695.95,
+              "single_under_25": 353.29,
+              "couple_under_25": 551.3
+            }
+          },
+          "health_element_monthly": {
+            "cpi_only": 456.68,
+            "new_claimant_with_reform": 217.26
+          }
+        },
+        {
+          "year": 2029,
+          "label": "2029-30 (4.8%)",
+          "uplift_pct": 0.048,
+          "cpi_ratio_from_base": 1.1005,
+          "standard_allowance_monthly": {
+            "cpi_only": {
+              "single_25_plus": 440.36,
+              "couple_25_plus": 691.23,
+              "single_under_25": 348.84,
+              "couple_under_25": 547.56
+            },
+            "with_reform": {
+              "single_25_plus": 452.23,
+              "couple_25_plus": 709.87,
+              "single_under_25": 360.36,
+              "couple_under_25": 562.33
+            }
+          },
+          "health_element_monthly": {
+            "cpi_only": 465.81,
+            "new_claimant_with_reform": 217.26
+          }
+        }
+      ]
     }
   }
 }

@@ -81,7 +81,7 @@ def policy_description(
     final_pct = schedule[final_year] * 100
     return (
         f"From April {min(schedule)} the Universal Credit Act 2025 introduces "
-        "two changes under a single rebalancing flag: an above-inflation uplift "
+        "two changes under a single rebalancing package: an above-inflation uplift "
         f"to the standard allowance, reaching {final_pct:.1f}% cumulatively by "
         f"{final_year}-{(final_year + 1) % 100:02d}, and a fixed monthly health "
         f"element of £{new_claimant_monthly:,.2f} for new claimants. This "
@@ -104,6 +104,9 @@ _DWP_IA_URL = (
     "https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/"
     "withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf"
 )
+_DWP_IA_TABLE_2 = f"{_DWP_IA_URL}#page=9"
+_DWP_IA_TABLE_4 = f"{_DWP_IA_URL}#page=9"
+_DWP_IA_TABLE_9 = f"{_DWP_IA_URL}#page=11"
 
 PUBLISHED_ESTIMATES = [
     {
@@ -114,7 +117,7 @@ PUBLISHED_ESTIMATES = [
         "value_bn": 1.85,
         "year": "2029/30",
         "table": "Table 4",
-        "url": _DWP_IA_URL,
+        "url": _DWP_IA_TABLE_4,
     },
     {
         "source": "DWP Impact Assessment",
@@ -124,7 +127,7 @@ PUBLISHED_ESTIMATES = [
         "value_count": 6_690_000,
         "year": "2029/30",
         "table": "Table 2",
-        "url": _DWP_IA_URL,
+        "url": _DWP_IA_TABLE_2,
     },
     {
         "source": "DWP Impact Assessment",
@@ -134,7 +137,7 @@ PUBLISHED_ESTIMATES = [
         "value_bn": -2.10,
         "year": "2029/30",
         "table": "Table 9",
-        "url": _DWP_IA_URL,
+        "url": _DWP_IA_TABLE_9,
     },
     {
         "source": "DWP Impact Assessment",
@@ -144,7 +147,7 @@ PUBLISHED_ESTIMATES = [
         "value_count": 750_000,
         "year": "2029/30",
         "table": "Table 9",
-        "url": _DWP_IA_URL,
+        "url": _DWP_IA_TABLE_9,
     },
     {
         "source": "DWP Impact Assessment",
@@ -154,7 +157,7 @@ PUBLISHED_ESTIMATES = [
         "value_bn": -0.21,
         "year": "2029/30",
         "table": "Tables 4 + 9",
-        "url": _DWP_IA_URL,
+        "url": _DWP_IA_TABLE_4,
     },
     {
         "source": "DWP Impact Assessment",
@@ -162,7 +165,7 @@ PUBLISHED_ESTIMATES = [
         "metric": "Single 25+ nominal increase 2025/26 to 2029/30",
         "value": "£725/yr",
         "year": "2029/30",
-        "url": _DWP_IA_URL,
+        "url": f"{_DWP_IA_URL}#page=5",
     },
     {
         "source": "DWP Impact Assessment",
@@ -170,7 +173,7 @@ PUBLISHED_ESTIMATES = [
         "metric": "New LCWRA monthly rate cut to new-claimant rate",
         "value": "-£2,472/yr",
         "year": "2026/27",
-        "url": _DWP_IA_URL,
+        "url": f"{_DWP_IA_URL}#page=11",
     },
     {
         "source": "IFS",

@@ -52,12 +52,13 @@ const AXIS_STYLE = {
   fill: colors.gray[500],
 };
 
-function CustomTooltip({ active, payload, label, formatter }) {
+function CustomTooltip({ active, payload, label, formatter, labelFormatter }) {
   if (!active || !payload?.length) return null;
+  const headerLabel = labelFormatter ? labelFormatter(label, payload) : label;
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-lg">
-      {label !== undefined ? (
-        <div className="mb-2 font-semibold text-slate-800">{label}</div>
+      {headerLabel !== undefined && headerLabel !== null ? (
+        <div className="mb-2 font-semibold text-slate-800">{headerLabel}</div>
       ) : null}
       {payload.map((entry) => (
         <div
@@ -459,29 +460,19 @@ export default function ReformTab({ data }) {
     [data, policyId],
   );
   const schedule = data.policies[policyId].uplift_schedule;
-  const cumulativePct = (
-    Math.max(...Object.values(schedule).map(Number)) * 100
-  ).toFixed(1);
   const health = data.policies[policyId].health_element_monthly;
   const sa = data.policies[policyId].standard_allowance_monthly;
+  const parameterPath =
+    data.policies[policyId].parameter_path_by_year ?? [];
   const gbp = (v) =>
     `£${v.toLocaleString("en-GB", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
   const newClaimantMonthly = gbp(health.new_claimant);
-  const baselineBaseYearMonthly = gbp(health.baseline_base_year);
-  const baselinePrimaryYearMonthly = gbp(health.baseline_primary_year);
   const reformStartYear = Math.min(
     ...Object.keys(schedule).map((y) => Number(y)),
   );
-  const scheduleRows = Object.keys(schedule)
-    .map((y) => Number(y))
-    .sort((a, b) => a - b)
-    .map((y) => ({
-      year: y,
-      pct: schedule[String(y)] * 100,
-    }));
   const dwpSaCost = getPublishedByLeg(data, policyId, "sa", "SA leg cost");
   const dwpSaGainers = getPublishedByLeg(data, policyId, "sa", "Households gaining");
   const dwpHeSaving = getPublishedByLeg(data, policyId, "he", "UCHE saving");
@@ -513,21 +504,18 @@ export default function ReformTab({ data }) {
             >
               Act 2025
             </a>{" "}
-            bundles two changes under one rebalancing flag, both effective
+            bundles two changes into one rebalancing reform, both effective
             1 April {reformStartYear}: an above-CPI uplift to the standard
             allowance, and a freeze of the monthly UC health element for new
             LCWRA claims. LCWRA stands for{" "}
             <em>limited capability for work and work-related activity</em> —
             the UC health element paid to claimants assessed as unable to
-            work or prepare for work because of a health condition. The two
-            changes work in opposite directions for the Exchequer
-            (cost vs saving) and for affected households (uplift vs cut), and
-            partly offset at the package level. This page quantifies the
-            household-level impact across {fyLabel(reformStartYear)}–
-            {fyLabel(finalYear)}: the per-change fiscal effect, the
-            distribution by income decile, the share of winners and losers,
-            and a representative single-25+ claimant, alongside published
-            DWP Impact Assessment and IFS estimates.
+            work or prepare for work because of a health condition. The SA
+            uplift raises UC for all claimants (a cost to the Exchequer);
+            the health element freeze reduces UC for new LCWRA claimants
+            from {fyLabel(reformStartYear)} onward (a saving). Netted at the
+            package level the two largely cancel out, but the gainers and
+            losers are different households.
           </>
         }
       />
@@ -538,124 +526,148 @@ export default function ReformTab({ data }) {
           What is changing
         </h3>
         <p className="mt-1 text-sm text-slate-500">
-          The two parameters governed by the rebalancing flag, with their
-          values before and after the reform.
+          Year-by-year cash values (£/month) for the two UC parameters
+          changed by the reform, alongside the CPI-only path that would
+          have applied without it. Pre-{reformStartYear} LCWRA claimants
+          stay on the CPI-indexed amount; only new LCWRA claims from
+          April {reformStartYear} land on the frozen rate.
         </p>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[640px] text-sm tabular-nums">
             <thead>
               <tr className="border-b border-slate-200 text-left text-[11px] uppercase tracking-wide text-slate-400">
                 <th className="py-2 pr-4 font-medium">Parameter</th>
                 <th className="py-2 pr-4 font-medium">
-                  Before ({fyLabel(reformStartYear - 1)})
+                  {fyLabel(reformStartYear - 1)}
                 </th>
-                <th className="py-2 pr-4 font-medium">
-                  After ({fyLabel(finalYear)})
-                </th>
-                <th className="py-2 pr-0 font-medium">Effective from</th>
+                {parameterPath.map((row) => (
+                  <th
+                    key={row.year}
+                    className="py-2 pr-4 font-medium"
+                  >
+                    {fyLabel(row.year)}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="text-slate-700">
-              <tr className="border-b border-slate-100 align-top">
+              <tr className="border-b border-slate-100">
                 <td className="py-3 pr-4">
                   <div className="font-semibold">
-                    Standard allowance, above-CPI uplift
+                    SA, single 25+ — CPI-only path
                   </div>
-                  <div className="mt-0.5 text-xs text-slate-500">
-                    Applies to all UC households; the SA itself continues to
-                    rise with CPI each April on top of this above-CPI step.
+                  <div className="mt-0.5 text-xs font-normal text-slate-500">
+                    What the SA would have reached on benefit CPI uprating
+                    alone.
                   </div>
                 </td>
                 <td className="py-3 pr-4">
-                  <span className="font-medium">CPI uprating only</span>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Single 25+: £{sa.base_year.single_25_plus.toFixed(2)}/mo;
-                    couple 25+: £{sa.base_year.couple_25_plus.toFixed(2)}/mo
-                    ({fyLabel(reformStartYear - 1)}).
-                  </div>
+                  £{sa.base_year.single_25_plus.toFixed(2)}
                 </td>
-                <td className="py-3 pr-4 tabular-nums">
-                  <a
-                    href="https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf#page=3"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline decoration-slate-300 hover:decoration-slate-500"
-                  >
-                    +{cumulativePct}% above CPI, cumulative
-                  </a>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Single 25+: £{sa.primary_year.single_25_plus.toFixed(2)}/mo;
-                    couple 25+: £{sa.primary_year.couple_25_plus.toFixed(2)}/mo
-                    ({fyLabel(finalYear)}, CPI + uplift).
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Year on year:{" "}
-                    {scheduleRows.map((r, i) => (
-                      <span key={r.year} className="tabular-nums">
-                        {fyLabel(r.year)} +{r.pct.toFixed(1)}%
-                        {i < scheduleRows.length - 1 ? " · " : ""}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="py-3 pr-0">1 April {reformStartYear}</td>
+                {parameterPath.map((row) => (
+                  <td key={row.year} className="py-3 pr-4">
+                    £{row.standard_allowance_monthly.cpi_only.single_25_plus.toFixed(2)}
+                  </td>
+                ))}
               </tr>
-              <tr className="align-top">
+              <tr className="border-b border-slate-200">
                 <td className="py-3 pr-4">
                   <div className="font-semibold">
-                    UC health element, new LCWRA claims (monthly)
+                    SA, single 25+ — with reform
                   </div>
-                  <div className="mt-0.5 text-xs text-slate-500">
-                    Affects only new claims from April {reformStartYear};
-                    pre-2026 claims keep the CPI-indexed amount.
-                  </div>
-                </td>
-                <td className="py-3 pr-4 tabular-nums">
-                  <a
-                    href="https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf#page=1"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline decoration-slate-300 hover:decoration-slate-500"
-                  >
-                    {baselineBaseYearMonthly}/mo
-                  </a>
-                  <div className="mt-1 text-xs text-slate-500">
-                    CPI-indexed; would reach {baselinePrimaryYearMonthly}/mo
-                    by {fyLabel(finalYear)}.
+                  <div className="mt-0.5 text-xs font-normal text-slate-500">
+                    CPI plus the above-CPI uplift on the schedule. See{" "}
+                    <a
+                      href="https://assets.publishing.service.gov.uk/media/689ca49e1c63de6de5bb1298/withdrawn-universal-credit-bill-uc-rebalancing-impact-assessment.pdf#page=8"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline decoration-slate-300 hover:decoration-slate-500"
+                    >
+                      DWP IA Table 1b
+                    </a>
+                    .
                   </div>
                 </td>
-                <td className="py-3 pr-4 tabular-nums">
-                  <a
-                    href="https://bills.parliament.uk/publications/62123/documents/6889#page=16"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline decoration-slate-300 hover:decoration-slate-500"
-                  >
-                    {newClaimantMonthly}/mo
-                  </a>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Fixed in cash terms; no CPI uprating.
+                <td className="py-3 pr-4">
+                  £{sa.base_year.single_25_plus.toFixed(2)}
+                </td>
+                {parameterPath.map((row) => (
+                  <td key={row.year} className="py-3 pr-4 font-medium">
+                    £{row.standard_allowance_monthly.with_reform.single_25_plus.toFixed(2)}
+                    <div className="text-[11px] font-normal text-slate-400">
+                      +{(row.uplift_pct * 100).toFixed(1)}% above CPI
+                    </div>
+                  </td>
+                ))}
+              </tr>
+              <tr className="border-b border-slate-100">
+                <td className="py-3 pr-4">
+                  <div className="font-semibold">
+                    HE — CPI-indexed (pre-{reformStartYear} claims)
+                  </div>
+                  <div className="mt-0.5 text-xs font-normal text-slate-500">
+                    Existing LCWRA caseload stays on the CPI-uprated rate.
                   </div>
                 </td>
-                <td className="py-3 pr-0">1 April {reformStartYear}</td>
+                <td className="py-3 pr-4">
+                  £{health.baseline_base_year.toFixed(2)}
+                </td>
+                {parameterPath.map((row) => (
+                  <td key={row.year} className="py-3 pr-4">
+                    £{row.health_element_monthly.cpi_only.toFixed(2)}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td className="py-3 pr-4">
+                  <div className="font-semibold">
+                    HE — new LCWRA claim from April {reformStartYear}
+                  </div>
+                  <div className="mt-0.5 text-xs font-normal text-slate-500">
+                    Fixed cash rate, no CPI uprating. See{" "}
+                    <a
+                      href="https://bills.parliament.uk/publications/62123/documents/6889#page=16"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline decoration-slate-300 hover:decoration-slate-500"
+                    >
+                      Bill p.16
+                    </a>
+                    .
+                  </div>
+                </td>
+                <td className="py-3 pr-4 text-slate-400">—</td>
+                {parameterPath.map((row) => (
+                  <td key={row.year} className="py-3 pr-4 font-medium">
+                    £{row.health_element_monthly.new_claimant_with_reform.toFixed(2)}
+                    <div className="text-[11px] font-normal text-slate-400">
+                      −£{(row.health_element_monthly.cpi_only - row.health_element_monthly.new_claimant_with_reform).toFixed(2)} vs CPI
+                    </div>
+                  </td>
+                ))}
               </tr>
             </tbody>
           </table>
         </div>
+        <p className="mt-3 text-xs text-slate-400">
+          Couple and under-25 SA rates follow the same above-CPI schedule;
+          the per-claimant grid below lets you switch household type.
+        </p>
       </div>
 
-      {/* Per-change comparison vs DWP Impact Assessment */}
+      {/* Per-change impact summary, with DWP benchmarks where published */}
       {summary && summarySa && summaryHe && (
         <div>
           <h3 className="mb-3 text-lg font-semibold text-slate-900">
-            Per-change comparison vs DWP IA ({fyLabel(finalYear)})
+            Per-change impact ({fyLabel(finalYear)})
           </h3>
           <p className="mb-4 text-sm text-slate-500">
-            The rebalancing flag bundles two changes that move in opposite
-            directions. The DWP IA publishes them separately, so each box
-            below compares our static estimate against the matching DWP
-            figure. Positive values are gains to households (a cost to the
-            Exchequer); negative values are losses (a saving).
+            Static household-level impact for each change in the package,
+            plus the net effect and the change in headline poverty. The DWP
+            IA publishes the two leg figures separately, so the first two
+            boxes also show the matching DWP benchmark. Positive values are
+            gains to households (a cost to the Exchequer); negative values
+            are losses (a saving).
           </p>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {/* SA leg */}
@@ -871,7 +883,7 @@ export default function ReformTab({ data }) {
               </div>
               <div className="mt-2 text-xs leading-5 text-slate-500">
                 UC at {fyLabel(finalYear)} with the above-CPI uplift minus
-                UC with the rebalancing flag off, plotted against employment
+                UC with the rebalancing reform off, plotted against employment
                 income for the selected archetype. The LCWRA-claim setting
                 does not affect this card. Benchmark:{" "}
                 <a

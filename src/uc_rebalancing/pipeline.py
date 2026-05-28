@@ -667,6 +667,53 @@ def build_results(dataset: str = DEFAULT_DATASET) -> dict[str, Any]:
         "couple_under_25": round(float(sa_node.COUPLE_YOUNG(f"{primary_year}-04-01")), 2),
     }
 
+    cpi_node = parameters.gov.benefit_uprating_cpi
+    cpi_base = float(cpi_node(f"{base_year}-04-01"))
+    sa_keys = (
+        ("single_25_plus", "SINGLE_OLD"),
+        ("couple_25_plus", "COUPLE_OLD"),
+        ("single_under_25", "SINGLE_YOUNG"),
+        ("couple_under_25", "COUPLE_YOUNG"),
+    )
+    parameter_path_by_year = []
+    for y in years:
+        cpi_ratio = float(cpi_node(f"{y}-04-01")) / cpi_base
+        sa_with = {
+            key: round(float(getattr(sa_node, attr)(f"{y}-04-01")), 2)
+            for key, attr in sa_keys
+        }
+        sa_cpi_only = {
+            key: round(
+                standard_allowance_monthly_base_year[key] * cpi_ratio, 2
+            )
+            for key, _ in sa_keys
+        }
+        # PE-UK's disabled.amount parameter has been re-pinned to the £217.26
+        # post-reform value from 2026-04-01 onwards, so we cannot read the
+        # CPI-only counterfactual rate off the parameter directly. Derive it
+        # from the 2025-04-01 (pre-reform) value uprated by CPI instead.
+        he_cpi_only = round(health_element_monthly_base_year * cpi_ratio, 2)
+        he_new_claimant = round(
+            float(rebalancing_node.new_claimant_health_element(f"{y}-04-01")),
+            2,
+        )
+        parameter_path_by_year.append(
+            {
+                "year": y,
+                "label": scenario_label(y, schedule),
+                "uplift_pct": schedule[y],
+                "cpi_ratio_from_base": round(cpi_ratio, 4),
+                "standard_allowance_monthly": {
+                    "cpi_only": sa_cpi_only,
+                    "with_reform": sa_with,
+                },
+                "health_element_monthly": {
+                    "cpi_only": he_cpi_only,
+                    "new_claimant_with_reform": he_new_claimant,
+                },
+            }
+        )
+
     gainer = per_claimant_test(
         base_year, primary_year, counterfactual_reform
     )
@@ -716,6 +763,7 @@ def build_results(dataset: str = DEFAULT_DATASET) -> dict[str, Any]:
                     "base_year": standard_allowance_monthly_base_year,
                     "primary_year": standard_allowance_monthly_primary_year,
                 },
+                "parameter_path_by_year": parameter_path_by_year,
                 "scenarios": scenarios,
                 "primary_scenario": primary_id,
                 "primary_summary": primary["summary"],
